@@ -1,0 +1,545 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   Design language: morphoglass × neo-brutalism, strictly monochrome.
+
+   The two idioms are given different jobs rather than being blended into mush:
+   brutalism owns STRUCTURE (hard 2px edges, solid offset shadows, exposed
+   metadata, raw grid) and glass owns SURFACE (frosted panels floating inside
+   those frames, lit by a slow-morphing monochrome mesh behind them).
+   No colour anywhere — only ink, paper, and the grey ramp between them.
+   ========================================================================== */
+
+@theme {
+  --font-display: 'Archivo', system-ui, sans-serif;
+  --font-body: 'Archivo', system-ui, sans-serif;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-arabic: 'IBM Plex Sans Arabic', 'Archivo', sans-serif;
+
+  --color-ink: #08080a;
+  --color-paper: #f4f4f0;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* --- palette --------------------------------------------------------------
+   Every token is defined for both themes. `data-theme` on <html> flips them. */
+:root,
+:root[data-theme='dark'] {
+  --bg: #08080a;
+  --bg-raised: #0e0e11;
+  --fg: #f4f4f0;
+  --fg-dim: #a3a39c;
+  --fg-faint: #6e6e68;
+
+  --edge: #f4f4f0;
+  --edge-soft: rgba(244, 244, 240, 0.16);
+  --hairline: rgba(244, 244, 240, 0.09);
+
+  --glass-bg: rgba(244, 244, 240, 0.045);
+  --glass-bg-strong: rgba(244, 244, 240, 0.075);
+  --glass-border: rgba(244, 244, 240, 0.14);
+  --glass-sheen: rgba(244, 244, 240, 0.28);
+
+  --mesh-a: rgba(244, 244, 240, 0.16);
+  --mesh-b: rgba(244, 244, 240, 0.09);
+
+  --shadow-hard: 6px 6px 0 0 var(--edge);
+  --shadow-hard-sm: 4px 4px 0 0 var(--edge);
+  --grain-opacity: 0.055;
+  --grain-blend: overlay;
+
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #eeeeea;
+  --bg-raised: #f7f7f4;
+  --fg: #0a0a0b;
+  --fg-dim: #55554f;
+  --fg-faint: #8a8a83;
+
+  --edge: #0a0a0b;
+  --edge-soft: rgba(10, 10, 11, 0.18);
+  --hairline: rgba(10, 10, 11, 0.1);
+
+  --glass-bg: rgba(255, 255, 255, 0.5);
+  --glass-bg-strong: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(10, 10, 11, 0.12);
+  --glass-sheen: rgba(255, 255, 255, 0.9);
+
+  --mesh-a: rgba(10, 10, 11, 0.09);
+  --mesh-b: rgba(10, 10, 11, 0.05);
+
+  --shadow-hard: 6px 6px 0 0 var(--edge);
+  --shadow-hard-sm: 4px 4px 0 0 var(--edge);
+  --grain-opacity: 0.05;
+  --grain-blend: multiply;
+
+  color-scheme: light;
+}
+
+/* --- base ----------------------------------------------------------------- */
+* {
+  border-color: var(--edge-soft);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-feature-settings: 'ss01', 'cv01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  transition: background-color 0.5s var(--ease-out-expo), color 0.5s var(--ease-out-expo);
+}
+
+html[lang='ar'] body {
+  font-family: var(--font-arabic);
+}
+
+::selection {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+  border-radius: 1px;
+}
+
+/* Thin monochrome scrollbar — part of the chrome, not an afterthought. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--edge-soft);
+  border: 3px solid var(--bg);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-faint);
+}
+
+/* --- texture: film grain --------------------------------------------------
+   A single fixed SVG turbulence layer. This is what stops large flat areas
+   from reading as "default CSS". */
+.grain {
+  position: fixed;
+  inset: -50%;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain-shift 8s steps(6) infinite;
+}
+
+@keyframes grain-shift {
+  0%, 100% { transform: translate(0, 0); }
+  16% { transform: translate(-3%, 2%); }
+  33% { transform: translate(2%, -3%); }
+  50% { transform: translate(-2%, -2%); }
+  66% { transform: translate(3%, 1%); }
+  83% { transform: translate(-1%, 3%); }
+}
+
+/* --- texture: structural grid ---------------------------------------------
+   Hairline columns behind everything. Barely visible, but the eye registers
+   that the layout sits on a system. */
+.grid-lines {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--hairline) 0 1px,
+    transparent 1px calc(100% / 6)
+  );
+}
+
+/* --- morphoglass: the mesh that the glass refracts ------------------------ */
+.mesh {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.mesh::before,
+.mesh::after {
+  content: '';
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  max-width: 900px;
+  max-height: 900px;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform, border-radius;
+}
+
+.mesh::before {
+  top: -18%;
+  inset-inline-start: -12%;
+  background: radial-gradient(circle at 35% 35%, var(--mesh-a), transparent 68%);
+  animation: morph-a 22s var(--ease-in-out-quart) infinite alternate;
+}
+
+.mesh::after {
+  bottom: -22%;
+  inset-inline-end: -14%;
+  background: radial-gradient(circle at 60% 40%, var(--mesh-b), transparent 66%);
+  animation: morph-b 27s var(--ease-in-out-quart) infinite alternate;
+}
+
+@keyframes morph-a {
+  0% { transform: translate3d(0, 0, 0) scale(1); border-radius: 58% 42% 40% 60% / 52% 46% 54% 48%; }
+  50% { transform: translate3d(8%, 6%, 0) scale(1.14); border-radius: 38% 62% 66% 34% / 40% 60% 40% 60%; }
+  100% { transform: translate3d(-5%, 10%, 0) scale(0.94); border-radius: 64% 36% 32% 68% / 62% 38% 62% 38%; }
+}
+
+@keyframes morph-b {
+  0% { transform: translate3d(0, 0, 0) scale(1.05); border-radius: 44% 56% 62% 38% / 58% 44% 56% 42%; }
+  50% { transform: translate3d(-9%, -7%, 0) scale(0.9); border-radius: 66% 34% 38% 62% / 36% 64% 36% 64%; }
+  100% { transform: translate3d(6%, -4%, 0) scale(1.16); border-radius: 34% 66% 56% 44% / 64% 36% 64% 36%; }
+}
+
+/* --- morphoglass: the panels ---------------------------------------------- */
+.glass {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  border: 1px solid var(--glass-border);
+  isolation: isolate;
+}
+
+.glass-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(28px) saturate(1.8);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+}
+
+/* The top sheen is what sells "glass" rather than "translucent rectangle". */
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background: linear-gradient(
+    170deg,
+    var(--glass-sheen) 0%,
+    transparent 22%,
+    transparent 78%,
+    color-mix(in srgb, var(--glass-sheen) 40%, transparent) 100%
+  );
+  opacity: 0.22;
+}
+
+/* --- neo-brutalism: hard edges and solid shadows -------------------------- */
+.brut {
+  border: 2px solid var(--edge);
+  box-shadow: var(--shadow-hard);
+  background: var(--bg-raised);
+}
+
+.brut-sm {
+  border: 2px solid var(--edge);
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.brut-flat {
+  border: 2px solid var(--edge);
+}
+
+.brut-press {
+  transition: transform 0.18s var(--ease-out-expo), box-shadow 0.18s var(--ease-out-expo);
+}
+.brut-press:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 9px 9px 0 0 var(--edge);
+}
+.brut-press:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 0 var(--edge);
+}
+
+/* RTL mirrors the shadow so the light source stays consistent. */
+html[dir='rtl'] .brut { box-shadow: -6px 6px 0 0 var(--edge); }
+html[dir='rtl'] .brut-sm { box-shadow: -4px 4px 0 0 var(--edge); }
+html[dir='rtl'] .brut-press:hover { transform: translate(3px, -3px); box-shadow: -9px 9px 0 0 var(--edge); }
+html[dir='rtl'] .brut-press:active { transform: translate(-2px, 2px); box-shadow: -2px 2px 0 0 var(--edge); }
+
+/* --- typography ----------------------------------------------------------- */
+.display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 0.84;
+  text-transform: uppercase;
+}
+
+html[lang='ar'] .display {
+  font-family: var(--font-arabic);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.15;
+  text-transform: none;
+}
+
+.serif-accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+html[lang='ar'] .serif-accent {
+  font-family: var(--font-arabic);
+  font-style: normal;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.label-tight {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+html[lang='ar'] .label,
+html[lang='ar'] .label-tight {
+  letter-spacing: 0;
+}
+
+.mono { font-family: var(--font-mono); }
+
+/* --- link with a rule that draws itself ----------------------------------- */
+.link-rule {
+  position: relative;
+  display: inline-block;
+}
+.link-rule::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -2px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: inline-start;
+  transition: transform 0.4s var(--ease-out-expo);
+}
+.link-rule:hover::after {
+  transform: scaleX(1);
+}
+
+/* --- marquee --------------------------------------------------------------- */
+.marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll var(--marquee-duration, 40s) linear infinite;
+}
+.marquee-reverse { animation-direction: reverse; }
+.marquee-host:hover .marquee { animation-play-state: paused; }
+
+@keyframes marquee-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+/* --- reveal --------------------------------------------------------------- */
+.reveal-mask {
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 0.9s var(--ease-out-expo), opacity 0.9s var(--ease-out-expo);
+  opacity: 0;
+}
+.reveal-mask.is-visible {
+  clip-path: inset(0 0 0 0);
+  opacity: 1;
+}
+
+/* --- custom cursor (pointer devices only) --------------------------------- */
+@media (hover: hover) and (pointer: fine) {
+  .cursor-host { cursor: none; }
+  .cursor-host a,
+  .cursor-host button,
+  .cursor-host input,
+  .cursor-host textarea,
+  .cursor-host select,
+  .cursor-host [role='button'] { cursor: none; }
+}
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  border-radius: 50%;
+  mix-blend-mode: difference;
+}
+.cursor-dot {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+  margin: -3px 0 0 -3px;
+}
+.cursor-ring {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  margin: -17px 0 0 -17px;
+  transition: width 0.28s var(--ease-out-expo), height 0.28s var(--ease-out-expo),
+    margin 0.28s var(--ease-out-expo), border-color 0.28s var(--ease-out-expo);
+}
+.cursor-ring[data-active='true'] {
+  width: 62px;
+  height: 62px;
+  margin: -31px 0 0 -31px;
+  border-color: rgba(255, 255, 255, 0.95);
+}
+
+/* --- forms ---------------------------------------------------------------- */
+.field {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--edge-soft);
+  padding: 0.85rem 0.15rem;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  transition: border-color 0.3s var(--ease-out-expo);
+}
+.field::placeholder { color: var(--fg-faint); }
+.field:focus {
+  outline: none;
+  border-bottom-color: var(--fg);
+}
+.field:disabled { opacity: 0.5; }
+
+.field-box {
+  width: 100%;
+  background: var(--glass-bg);
+  border: 2px solid var(--edge-soft);
+  padding: 0.7rem 0.85rem;
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  transition: border-color 0.25s var(--ease-out-expo);
+}
+.field-box:focus {
+  outline: none;
+  border-color: var(--fg);
+}
+
+/* --- prose (case studies) -------------------------------------------------- */
+.prose-mono h2 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.35rem, 2.6vw, 1.9rem);
+  letter-spacing: -0.02em;
+  margin: 2.6rem 0 0.85rem;
+  text-transform: uppercase;
+}
+html[lang='ar'] .prose-mono h2 {
+  font-family: var(--font-arabic);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.prose-mono p {
+  color: var(--fg-dim);
+  line-height: 1.75;
+  margin-bottom: 1.05rem;
+  font-size: 1.0625rem;
+}
+.prose-mono ul { margin: 0 0 1.25rem; padding-inline-start: 1.1rem; }
+.prose-mono li {
+  color: var(--fg-dim);
+  line-height: 1.7;
+  margin-bottom: 0.55rem;
+  list-style: none;
+  position: relative;
+}
+.prose-mono li::before {
+  content: '—';
+  position: absolute;
+  inset-inline-start: -1.1rem;
+  color: var(--fg-faint);
+}
+.prose-mono strong { color: var(--fg); font-weight: 700; }
+.prose-mono code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  padding: 0.1em 0.38em;
+}
+
+/* --- utilities ------------------------------------------------------------ */
+.rule { height: 1px; background: var(--edge-soft); width: 100%; }
+.rule-strong { height: 2px; background: var(--edge); width: 100%; }
+
+.invert-block {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.stripe {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--edge-soft) 0 1px,
+    transparent 1px 7px
+  );
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* --- motion preferences --------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal-mask { clip-path: none; opacity: 1; }
+  .grain { animation: none; }
+  .mesh::before, .mesh::after { animation: none; }
+}
+
+@media print {
+  .grain, .grid-lines, .mesh, .cursor-dot, .cursor-ring { display: none !important; }
+  body { background: #fff; color: #000; }
+}

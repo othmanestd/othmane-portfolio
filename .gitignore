@@ -1,0 +1,23 @@
+# deps
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# build
+dist/
+.vercel/
+*.tsbuildinfo
+
+# secrets — never commit
+.env
+.env.*
+!.env.example
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+*.log
+npm-debug.log*

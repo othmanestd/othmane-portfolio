@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+
+Sitemap: https://othmane-sadiki.vercel.app/sitemap.xml
