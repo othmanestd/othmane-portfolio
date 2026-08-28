@@ -7,6 +7,7 @@ from typing import Any
 from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from _lib import content as C
 from _lib import mailer
@@ -270,24 +271,35 @@ async def delete_appointment(appointment_id: str) -> dict:
 
 
 # --- generic content CRUD -------------------------------------------------
-def _crud(collection: str, model):
-    """Register list/create/update/delete for a content collection."""
+def _crud(collection: str, model: type[BaseModel]) -> None:
+    """Register list/create/update/delete for a content collection.
 
-    @guarded.get(f"/{collection}", name=f"list_{collection}")
+    The payload annotations are attached *after* the functions are defined and
+    the routes registered explicitly, rather than written into the signatures.
+
+    This module uses `from __future__ import annotations`, which turns every
+    signature annotation into a string. A signature written `payload: model`
+    therefore reaches FastAPI as the literal string "model", which it cannot
+    resolve to a Pydantic class in the module globals — `model` is a local of
+    this factory. FastAPI does not raise for that; it silently falls back to
+    treating the parameter as a *query* argument, so every create and update
+    rejects a perfectly valid JSON body with "field required". Assigning the
+    real class object to __annotations__ before registration avoids the whole
+    string-resolution path.
+    """
+
     async def _list() -> dict:
         docs = await get_db()[collection].find({}).sort([("order", 1)]).to_list(length=300)
         return {"items": serialize_many(docs)}
 
-    @guarded.post(f"/{collection}", name=f"create_{collection}")
-    async def _create(payload: model) -> dict:  # type: ignore[valid-type]
+    async def _create(payload):
         doc = payload.model_dump()
         doc["created_at"] = datetime.now(timezone.utc)
         result = await get_db()[collection].insert_one(doc)
         created = await get_db()[collection].find_one({"_id": result.inserted_id})
         return {"ok": True, "item": serialize(created)}
 
-    @guarded.put(f"/{collection}/{{item_id}}", name=f"update_{collection}")
-    async def _update(item_id: str, payload: model) -> dict:  # type: ignore[valid-type]
+    async def _update(item_id, payload):
         doc = payload.model_dump()
         doc["updated_at"] = datetime.now(timezone.utc)
         result = await get_db()[collection].update_one({"_id": _oid(item_id)}, {"$set": doc})
@@ -296,12 +308,20 @@ def _crud(collection: str, model):
         updated = await get_db()[collection].find_one({"_id": _oid(item_id)})
         return {"ok": True, "item": serialize(updated)}
 
-    @guarded.delete(f"/{collection}/{{item_id}}", name=f"delete_{collection}")
-    async def _delete(item_id: str) -> dict:
+    async def _delete(item_id):
         result = await get_db()[collection].delete_one({"_id": _oid(item_id)})
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Item not found")
         return {"ok": True}
+
+    _create.__annotations__ = {"payload": model, "return": dict}
+    _update.__annotations__ = {"item_id": str, "payload": model, "return": dict}
+    _delete.__annotations__ = {"item_id": str, "return": dict}
+
+    guarded.get(f"/{collection}", name=f"list_{collection}")(_list)
+    guarded.post(f"/{collection}", name=f"create_{collection}")(_create)
+    guarded.put(f"/{collection}/{{item_id}}", name=f"update_{collection}")(_update)
+    guarded.delete(f"/{collection}/{{item_id}}", name=f"delete_{collection}")(_delete)
 
 
 _crud("projects", ProjectPayload)

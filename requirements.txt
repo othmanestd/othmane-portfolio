@@ -1,6 +1,9 @@
-fastapi==0.118.0
-pydantic[email]==2.11.9
-pymongo==4.15.1
+# Every pinned package must ship prebuilt wheels for the Python the Vercel
+# builder selects (currently 3.14). pydantic-core and pymongo carry compiled
+# extensions; older pins fall back to a source build and fail on pyo3 limits.
+fastapi==0.141.1
+pydantic[email]==2.13.5
+pymongo==4.17.0
 PyJWT==2.10.1
 httpx==0.28.1
 certifi==2025.8.3
