@@ -1,0 +1,12 @@
+# The Vercel CLI does not honour .gitignore for uploads — secrets and local
+# build output must be excluded explicitly.
+.env
+.env.*
+!.env.example
+.venv/
+node_modules/
+dist/
+.git/
+.claude/
+__pycache__/
+*.pyc
