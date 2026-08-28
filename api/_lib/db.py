@@ -70,11 +70,23 @@ def get_db() -> AsyncDatabase:
 
 
 async def ping() -> bool:
+    ok, _ = await ping_detail()
+    return ok
+
+
+async def ping_detail() -> tuple[bool, str]:
+    """Ping the cluster, returning a short reason on failure.
+
+    Surfacing the reason matters in serverless: the most common cause of a
+    dead connection here is an Atlas IP access list that does not include
+    the platform's egress ranges, which otherwise looks like a silent hang.
+    """
     try:
         await get_client().admin.command("ping")
-        return True
-    except Exception:
-        return False
+        return True, ""
+    except Exception as exc:
+        detail = f"{type(exc).__name__}: {exc}"
+        return False, detail[:300]
 
 
 def serialize(doc: dict[str, Any] | None) -> dict[str, Any] | None:

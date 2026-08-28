@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 
 from _lib.config import settings  # noqa: E402
-from _lib.db import ping  # noqa: E402
+from _lib.db import ping_detail  # noqa: E402
 from _routers import admin, chat, contact, public  # noqa: E402
 
 app = FastAPI(
@@ -50,9 +50,11 @@ app.include_router(admin.guarded)
 
 @app.get("/api/health")
 async def health() -> dict:
+    db_ok, db_error = await ping_detail()
     return {
         "status": "ok",
-        "database": await ping(),
+        "database": db_ok,
+        "database_error": db_error,
         "capabilities": {
             "smtp": settings.has_smtp,
             "gemini": settings.has_gemini,
