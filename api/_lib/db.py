@@ -6,6 +6,7 @@ cached at module scope so warm serverless invocations reuse the connection pool.
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Any
 
 import certifi
@@ -16,6 +17,15 @@ from _lib.config import settings
 
 _client: AsyncMongoClient | None = None
 _client_loop: asyncio.AbstractEventLoop | None = None
+
+# --- circuit breaker state -------------------------------------------------
+# Trust a healthy verdict briefly; skip the database for longer after a failure
+# so an unreachable cluster stops costing a timeout on every single request.
+_BREAKER_TTL_OK = 15.0
+_BREAKER_TTL_FAIL = 30.0
+_breaker_checked_at = 0.0
+_breaker_healthy = False
+_breaker_has_result = False
 
 COLLECTIONS = (
     "profile",
@@ -54,9 +64,11 @@ def get_client() -> AsyncMongoClient:
         _client = AsyncMongoClient(
             settings.mongodb_uri,
             tlsCAFile=certifi.where(),
-            serverSelectionTimeoutMS=8000,
-            connectTimeoutMS=8000,
-            socketTimeoutMS=20000,
+            # Fail fast: on an unreachable cluster this is the ceiling on how
+            # long a single query can stall before we fall back to bundled data.
+            serverSelectionTimeoutMS=2500,
+            connectTimeoutMS=2500,
+            socketTimeoutMS=8000,
             maxPoolSize=5,
             retryWrites=True,
             appname="othmane-portfolio",
@@ -71,6 +83,35 @@ def get_db() -> AsyncDatabase:
 
 async def ping() -> bool:
     ok, _ = await ping_detail()
+    return ok
+
+
+async def db_healthy() -> bool:
+    """Circuit breaker around server selection.
+
+    A cold serverless invocation against an unreachable cluster otherwise pays
+    the full server-selection timeout on *every* query — six of them in
+    `/api/content` turned one request into ~50s. We ping once, cache the
+    verdict, and let callers skip the database entirely while it is known-down,
+    collapsing that to a single sub-3s check (and to ~0ms for the following
+    requests within the cooldown window).
+    """
+    global _breaker_checked_at, _breaker_healthy, _breaker_has_result
+    if not settings.mongodb_uri:
+        return False
+
+    now = time.monotonic()
+    if _breaker_has_result:
+        age = now - _breaker_checked_at
+        if _breaker_healthy and age < _BREAKER_TTL_OK:
+            return True
+        if not _breaker_healthy and age < _BREAKER_TTL_FAIL:
+            return False
+
+    ok, _ = await ping_detail()
+    _breaker_checked_at = time.monotonic()
+    _breaker_healthy = ok
+    _breaker_has_result = True
     return ok
 
 

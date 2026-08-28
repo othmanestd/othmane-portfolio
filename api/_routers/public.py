@@ -5,22 +5,52 @@ unreachable, so the site renders even during a database incident.
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import time
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request, Response
 
 from _lib import content as C
-from _lib.db import get_db, serialize_many
+from _lib.db import db_healthy, get_db, serialize_many
 from _lib.schemas import TrackEvent
 
 router = APIRouter()
 
 _PUBLIC_PROJECT_FIELDS = {"_id": 0}
 
+# In-process cache of the aggregated content payload. Warm invocations return it
+# without touching the database at all; admin edits surface within the TTL.
+_CONTENT_TTL = 30.0
+_content_cache: dict | None = None
+_content_cache_at = 0.0
 
-async def _collection(name: str, fallback: list[dict], *, query: dict | None = None,
-                      sort: list | None = None) -> list[dict]:
+
+def _bundled_content() -> dict:
+    """The canonical, always-available payload built from the content module."""
+    experiences = C.EXPERIENCES
+    awards = C.AWARDS + C.CERTIFICATIONS
+    return {
+        "profile": C.PROFILE,
+        "projects": [p for p in C.PROJECTS if p.get("published", True)],
+        "experiences": [e for e in experiences if e.get("kind") != "education"],
+        "education": [e for e in experiences if e.get("kind") == "education"],
+        "skills": C.SKILLS,
+        "awards": [a for a in awards if a.get("kind") != "certification"],
+        "certifications": [a for a in awards if a.get("kind") == "certification"],
+        "links": C.LINKS,
+        "meta": {
+            "github": C.GITHUB_URL,
+            "linkedin": C.LINKEDIN_URL,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "source": "bundled",
+        },
+    }
+
+
+async def _fetch(name: str, fallback: list[dict], *, query: dict | None = None,
+                 sort: list | None = None) -> list[dict]:
     try:
         cursor = get_db()[name].find(query or {}, _PUBLIC_PROJECT_FIELDS)
         if sort:
@@ -31,27 +61,31 @@ async def _collection(name: str, fallback: list[dict], *, query: dict | None = N
         return fallback
 
 
-@router.get("/api/content")
-async def get_content() -> dict:
-    """One aggregated payload — the site boots from a single request."""
-    try:
-        db = get_db()
-        profile = await db.profile.find_one({"key": "main"}, _PUBLIC_PROJECT_FIELDS)
-    except Exception:
-        profile = None
+async def _assemble_content() -> dict:
+    # One breaker check gates the whole request. When the database is down this
+    # returns immediately instead of paying a timeout per collection.
+    if not await db_healthy():
+        return _bundled_content()
 
-    projects = await _collection(
-        "projects", C.PROJECTS, query={"published": True}, sort=[("order", 1)]
+    async def _profile() -> dict:
+        try:
+            doc = await get_db().profile.find_one({"key": "main"}, _PUBLIC_PROJECT_FIELDS)
+            if doc:
+                doc.pop("key", None)
+                return doc
+        except Exception:
+            pass
+        return C.PROFILE
+
+    # Fan the reads out concurrently — one round-trip window, not six in series.
+    profile, projects, experiences, skills, awards, links = await asyncio.gather(
+        _profile(),
+        _fetch("projects", C.PROJECTS, query={"published": True}, sort=[("order", 1)]),
+        _fetch("experiences", C.EXPERIENCES, sort=[("order", 1)]),
+        _fetch("skills", C.SKILLS, sort=[("order", 1)]),
+        _fetch("awards", C.AWARDS + C.CERTIFICATIONS, sort=[("order", 1)]),
+        _fetch("links", C.LINKS, sort=[("order", 1)]),
     )
-    experiences = await _collection("experiences", C.EXPERIENCES, sort=[("order", 1)])
-    skills = await _collection("skills", C.SKILLS, sort=[("order", 1)])
-    awards = await _collection("awards", C.AWARDS + C.CERTIFICATIONS, sort=[("order", 1)])
-    links = await _collection("links", C.LINKS, sort=[("order", 1)])
-
-    if profile:
-        profile.pop("key", None)
-    else:
-        profile = C.PROFILE
 
     return {
         "profile": profile,
@@ -66,13 +100,34 @@ async def get_content() -> dict:
             "github": C.GITHUB_URL,
             "linkedin": C.LINKEDIN_URL,
             "generated_at": datetime.now(timezone.utc).isoformat(),
+            "source": "db",
         },
     }
 
 
+@router.get("/api/content")
+async def get_content(response: Response) -> dict:
+    """One aggregated payload — the site boots from a single request."""
+    global _content_cache, _content_cache_at
+    now = time.monotonic()
+    if _content_cache is not None and now - _content_cache_at < _CONTENT_TTL:
+        response.headers["X-Content-Cache"] = "hit"
+        return _content_cache
+
+    payload = await _assemble_content()
+    _content_cache = payload
+    _content_cache_at = now
+    response.headers["X-Content-Cache"] = "miss"
+    # Let the CDN and browser serve it for a short window too.
+    response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=120"
+    return payload
+
+
 @router.get("/api/projects")
 async def list_projects() -> dict:
-    projects = await _collection(
+    if not await db_healthy():
+        return {"items": [p for p in C.PROJECTS if p.get("published", True)]}
+    projects = await _fetch(
         "projects", C.PROJECTS, query={"published": True}, sort=[("order", 1)]
     )
     return {"items": projects}
@@ -80,12 +135,14 @@ async def list_projects() -> dict:
 
 @router.get("/api/projects/{slug}")
 async def get_project(slug: str) -> dict:
-    try:
-        doc = await get_db().projects.find_one(
-            {"slug": slug, "published": True}, _PUBLIC_PROJECT_FIELDS
-        )
-    except Exception:
-        doc = None
+    doc = None
+    if await db_healthy():
+        try:
+            doc = await get_db().projects.find_one(
+                {"slug": slug, "published": True}, _PUBLIC_PROJECT_FIELDS
+            )
+        except Exception:
+            doc = None
     if not doc:
         doc = next((p for p in C.PROJECTS if p["slug"] == slug), None)
     if not doc:
@@ -132,6 +189,8 @@ async def track(event: TrackEvent, request: Request) -> dict:
     visitor = hashlib.sha256(
         f"{client_host}|{request.headers.get('user-agent', '')}".encode()
     ).hexdigest()[:16]
+    if not await db_healthy():
+        return {"ok": False}
     try:
         await get_db().analytics_events.insert_one({
             "name": event.name,

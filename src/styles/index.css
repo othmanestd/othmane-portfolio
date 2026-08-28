@@ -360,6 +360,15 @@ html[lang='ar'] .label-tight {
   transform: scaleX(1);
 }
 
+/* --- loader sweep ---------------------------------------------------------- */
+.loader-sweep {
+  animation: loader-sweep 1.15s var(--ease-in-out-quart) infinite;
+}
+@keyframes loader-sweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(420%); }
+}
+
 /* --- marquee --------------------------------------------------------------- */
 .marquee {
   display: flex;

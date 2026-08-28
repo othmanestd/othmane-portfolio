@@ -9,7 +9,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 
 from _lib import mailer
 from _lib.config import settings
-from _lib.db import get_db
+from _lib.db import db_healthy, get_db
 from _lib.schemas import AppointmentRequest, ContactRequest
 
 router = APIRouter()
@@ -37,6 +37,8 @@ def _rate_limited(key: str) -> bool:
 
 
 async def _notify(kind: str, title: str, body: str, ref: str = "") -> None:
+    if not await db_healthy():
+        return
     try:
         await get_db().notifications.insert_one({
             "kind": kind,
@@ -75,6 +77,8 @@ async def submit_contact(payload: ContactRequest, request: Request,
         "created_at": datetime.now(timezone.utc),
     }
     try:
+        if not await db_healthy():
+            raise RuntimeError("db down")
         result = await get_db().messages.insert_one(dict(doc))
         doc_id = str(result.inserted_id)
     except Exception:
@@ -111,18 +115,20 @@ async def availability() -> dict:
     now = datetime.now(timezone.utc)
     earliest = now + timedelta(hours=12)  # no same-hour bookings
 
-    try:
-        taken_docs = await get_db().appointments.find(
-            {"slot_start": {"$gte": now}, "status": {"$in": ["pending", "confirmed"]}},
-            {"_id": 0, "slot_start": 1},
-        ).to_list(length=500)
-        taken = {
-            d["slot_start"].replace(tzinfo=timezone.utc).isoformat()
-            if d["slot_start"].tzinfo is None else d["slot_start"].isoformat()
-            for d in taken_docs
-        }
-    except Exception:
-        taken = set()
+    taken: set[str] = set()
+    if await db_healthy():
+        try:
+            taken_docs = await get_db().appointments.find(
+                {"slot_start": {"$gte": now}, "status": {"$in": ["pending", "confirmed"]}},
+                {"_id": 0, "slot_start": 1},
+            ).to_list(length=500)
+            taken = {
+                d["slot_start"].replace(tzinfo=timezone.utc).isoformat()
+                if d["slot_start"].tzinfo is None else d["slot_start"].isoformat()
+                for d in taken_docs
+            }
+        except Exception:
+            taken = set()
 
     slots = []
     for slot in _iter_slots(now, _LOOKAHEAD_DAYS):
@@ -180,6 +186,9 @@ async def book_appointment(payload: AppointmentRequest, request: Request,
         "created_at": now,
     }
 
+    if not await db_healthy():
+        raise HTTPException(status_code=503,
+                            detail="Booking is unavailable right now. Please use the contact form.")
     try:
         db = get_db()
         clash = await db.appointments.find_one(

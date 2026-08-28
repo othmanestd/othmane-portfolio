@@ -68,6 +68,67 @@
         } catch (e) {}
       })();
     </script>
+
+    <style>
+      /* Boot loader — inline so it renders before the CSS/JS bundles arrive.
+         Colours are hardcoded (no custom properties yet) and follow the theme
+         attribute set by the script above. */
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        background: #08080a;
+        color: #f4f4f0;
+        z-index: 1;
+      }
+      :root[data-theme='light'] #boot { background: #eeeeea; color: #0a0a0b; }
+      @media (prefers-color-scheme: light) {
+        :root:not([data-theme='dark']) #boot { background: #eeeeea; color: #0a0a0b; }
+      }
+      #boot .boot-mark {
+        font-family: 'Archivo', system-ui, sans-serif;
+        font-weight: 900;
+        font-size: 2rem;
+        letter-spacing: -0.04em;
+        width: 5rem;
+        height: 5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid currentColor;
+        animation: boot-pulse 1.3s ease-in-out infinite;
+      }
+      #boot .boot-bar {
+        position: relative;
+        width: 8rem;
+        height: 2px;
+        overflow: hidden;
+        background: currentColor;
+        opacity: 0.18;
+      }
+      #boot .boot-bar span {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 34%;
+        background: currentColor;
+        opacity: 1;
+        animation: boot-sweep 1.15s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+      }
+      @keyframes boot-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+      @keyframes boot-sweep {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(360%); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot .boot-mark, #boot .boot-bar span { animation: none; }
+      }
+    </style>
   </head>
   <body>
     <!-- Google Tag Manager (noscript) -->
@@ -75,7 +136,15 @@
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
 
-    <div id="root"></div>
+    <div id="root">
+      <!-- Boot loader: shown during bundle download/parse, replaced the instant
+           React mounts. Self-contained so it needs neither the CSS bundle nor
+           the JS to appear. -->
+      <div id="boot" aria-hidden="true">
+        <div class="boot-mark">OS</div>
+        <div class="boot-bar"><span></span></div>
+      </div>
+    </div>
     <noscript>
       <div style="padding:2rem;font-family:system-ui">
         This portfolio needs JavaScript. You can still reach me at

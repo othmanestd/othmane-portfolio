@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { cn, pad } from '@/lib/utils'
 import { Magnetic } from './Magnetic'
+import { Loader } from './Loader'
 
 /* --- section header -------------------------------------------------------
    The bracketed index + hairline is the recurring structural motif. */
@@ -122,12 +123,5 @@ export function Spinner({ className }: { className?: string }) {
 
 /** Full-bleed loading state used while the site content request is in flight. */
 export function PageLoader({ label }: { label: string }) {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="label flex items-center gap-3">
-        <Spinner />
-        {label}…
-      </div>
-    </div>
-  )
+  return <Loader label={label} fullscreen={false} />
 }

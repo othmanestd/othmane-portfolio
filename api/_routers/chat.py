@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 
 from _lib import rag
 from _lib.config import settings
-from _lib.db import get_db
+from _lib.db import db_healthy, get_db
 from _lib.schemas import ChatRequest, ChatResponse
 
 router = APIRouter()
@@ -35,6 +35,8 @@ def _rate_limited(key: str) -> bool:
 async def load_chunks() -> list[dict]:
     """Base KB from content plus any admin-authored chunks in Mongo."""
     chunks = rag.build_base_kb()
+    if not await db_healthy():
+        return chunks
     try:
         extra = await get_db().kb_chunks.find({}, {"_id": 0}).to_list(length=300)
     except Exception:
@@ -64,7 +66,10 @@ async def chat(payload: ChatRequest, request: Request) -> ChatResponse:
     result = await rag.answer(payload.message, payload.locale, history, chunks)
 
     # Log the exchange so the admin can see what visitors actually ask.
+    # Skip entirely when the database is down so it never delays the reply.
     try:
+        if not await db_healthy():
+            raise RuntimeError("db down")
         await get_db().analytics_events.insert_one({
             "name": "chat_message",
             "path": "/chat",
