@@ -21,6 +21,7 @@ export const dict = {
     'hero.scroll': 'Scroll',
     'hero.cta.work': 'See the work',
     'hero.cta.talk': "Let's talk",
+    'hero.cta.cv': 'Download CV',
 
     'section.work': 'Selected work',
     'section.work.sub': 'Pipelines, lakehouses and process mining',
@@ -160,6 +161,10 @@ export const dict = {
     'admin.pending': 'Pending',
     'admin.empty': 'Nothing here yet',
     'admin.dbEmpty': 'Unavailable while the database is unreachable — see the banner above.',
+    'admin.cv': 'CV / Resume (PDF)',
+    'admin.cvReplace': 'Upload / replace',
+    'admin.cvUploaded': 'CV updated',
+    'admin.cvBundled': 'Using the default bundled CV.',
   },
 
   fr: {
@@ -178,6 +183,7 @@ export const dict = {
     'hero.scroll': 'Défiler',
     'hero.cta.work': 'Voir les projets',
     'hero.cta.talk': 'Discutons',
+    'hero.cta.cv': 'Télécharger le CV',
 
     'section.work': 'Projets sélectionnés',
     'section.work.sub': 'Pipelines, lakehouses et process mining',
@@ -317,6 +323,10 @@ export const dict = {
     'admin.pending': 'En attente',
     'admin.empty': 'Rien pour le moment',
     'admin.dbEmpty': 'Indisponible tant que la base de données est injoignable — voir la bannière ci-dessus.',
+    'admin.cv': 'CV (PDF)',
+    'admin.cvReplace': 'Téléverser / remplacer',
+    'admin.cvUploaded': 'CV mis à jour',
+    'admin.cvBundled': 'CV par défaut utilisé.',
   },
 
   ar: {
@@ -335,6 +345,7 @@ export const dict = {
     'hero.scroll': 'مرّر',
     'hero.cta.work': 'شاهد الأعمال',
     'hero.cta.talk': 'لنتحدث',
+    'hero.cta.cv': 'تحميل السيرة',
 
     'section.work': 'أعمال مختارة',
     'section.work.sub': 'خطوط بيانات، ليكهاوس، وتنقيب العمليات',
@@ -474,6 +485,10 @@ export const dict = {
     'admin.pending': 'قيد الانتظار',
     'admin.empty': 'لا شيء بعد',
     'admin.dbEmpty': 'غير متاح ما دامت قاعدة البيانات غير متصلة — انظر الشريط أعلاه.',
+    'admin.cv': 'السيرة الذاتية (PDF)',
+    'admin.cvReplace': 'رفع / استبدال',
+    'admin.cvUploaded': 'تم تحديث السيرة',
+    'admin.cvBundled': 'يُستخدم الملف الافتراضي.',
   },
 } satisfies Record<Locale, Record<string, string>>
 

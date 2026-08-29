@@ -197,3 +197,9 @@ class KbDocPayload(BaseModel):
     kind: str = Field(default="note", max_length=40)
     text: str = Field(min_length=1, max_length=8000)
     locale: str = Field(default="all", max_length=8)
+
+
+class CvUpload(BaseModel):
+    filename: str = Field(default="cv.pdf", max_length=200)
+    # Base64 of the PDF (a data: URL prefix is tolerated and stripped).
+    content_b64: str = Field(min_length=1, max_length=16_000_000)

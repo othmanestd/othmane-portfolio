@@ -69,7 +69,7 @@ PROFILE = {
     "email": EMAIL,
     "phone": PHONE,
     "photo_url": PHOTO_URL,
-    "cv_url_fr": "/cv/othmane-sadiki-data-engineer-fr.pdf",
+    "cv_url_fr": "/api/cv",
     "cv_url_en": "",
     "available": True,
     "availability_note": {

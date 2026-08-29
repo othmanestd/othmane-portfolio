@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import { Plus, Save, Trash2, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Download, FileText, Plus, Save, Trash2, Upload, X } from 'lucide-react'
 import { adminApi } from '@/lib/api'
 import { useI18n } from '@/i18n'
 import { Button, PageLoader, Spinner } from '@/components/ui'
 import { AdminField, AdminHeader, EmptyState, LocalizedInput, Panel } from './parts'
-import { cn } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import type { Award, Experience, LinkItem, Localized, Profile, SkillGroup } from '@/lib/types'
 
 const EMPTY: Localized = { fr: '', en: '', ar: '' }
@@ -151,7 +151,99 @@ function ProfileEditor() {
           </Button>
         </div>
       </div>
+
+      <CvManager />
     </Panel>
+  )
+}
+
+/* ---------------- CV upload ---------------- */
+function CvManager() {
+  const { tr, locale } = useI18n()
+  const [status, setStatus] = useState<Awaited<ReturnType<typeof adminApi.cvStatus>> | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const load = () => adminApi.cvStatus().then(setStatus).catch(() => setStatus(null))
+  useEffect(() => { load() }, [])
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setMsg('')
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setMsg('PDF only'); return
+    }
+    if (file.size > 8 * 1024 * 1024) { setMsg('Max 8 MB'); return }
+    setBusy(true)
+    try {
+      const b64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result))
+        reader.onerror = reject
+        reader.readAsDataURL(file) // yields "data:application/pdf;base64,...."
+      })
+      await adminApi.uploadCv(file.name, b64)
+      setMsg(tr('admin.cvUploaded'))
+      load()
+      setTimeout(() => setMsg(''), 2500)
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function remove() {
+    if (!confirm(tr('admin.confirmDelete'))) return
+    setBusy(true)
+    try { await adminApi.deleteCv(); load() } finally { setBusy(false) }
+  }
+
+  const kb = status?.size ? Math.round(status.size / 1024) : 0
+
+  return (
+    <div className="mt-6 border-t pt-5" style={{ borderColor: 'var(--edge-soft)' }}>
+      <div className="mb-3 flex items-center gap-2">
+        <FileText size={14} strokeWidth={2} />
+        <span className="label">{tr('admin.cv')}</span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <a href="/api/cv?download=1" target="_blank" rel="noreferrer"
+           className="label-tight inline-flex items-center gap-2 border-2 px-3 py-2.5 transition-colors hover:invert-block"
+           style={{ borderColor: 'var(--edge-soft)' }}>
+          <Download size={13} strokeWidth={2.2} /> {tr('common.download')}
+        </a>
+
+        <input ref={inputRef} type="file" accept="application/pdf,.pdf"
+               onChange={onFile} className="hidden" />
+        <Button variant="solid" magnetic={false} disabled={busy}
+                onClick={() => inputRef.current?.click()}>
+          {busy ? <><Spinner /> …</> : <><Upload size={13} strokeWidth={2.3} /> {tr('admin.cvReplace')}</>}
+        </Button>
+
+        {status?.exists && (
+          <button onClick={remove} disabled={busy}
+                  className="flex h-[42px] w-10 items-center justify-center border-2"
+                  style={{ borderColor: 'var(--edge-soft)' }} aria-label={tr('admin.delete')}>
+            <Trash2 size={13} strokeWidth={2.2} />
+          </button>
+        )}
+
+        {msg && <span className="label-tight">{msg}</span>}
+      </div>
+
+      <p className="label-tight mt-3" style={{ color: 'var(--fg-faint)' }}>
+        {status
+          ? status.exists
+            ? `${status.filename || 'CV'} · ${kb} KB${status.updated_at ? ' · ' + formatDate(status.updated_at, locale) : ''}`
+            : tr('admin.cvBundled')
+          : '…'}
+      </p>
+    </div>
   )
 }
 

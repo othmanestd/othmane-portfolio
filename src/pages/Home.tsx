@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowDown, ArrowUpRight, BadgeCheck, Github, Linkedin, Trophy } from 'lucide-react'
+import { ArrowDown, ArrowUpRight, BadgeCheck, Download, Github, Linkedin, Trophy } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useContent } from '@/hooks/useContent'
 import { Reveal } from '@/components/Reveal'
@@ -64,6 +64,12 @@ export default function Home() {
                 <ButtonLink to="/contact" variant="outline">
                   {tr('hero.cta.talk')}
                 </ButtonLink>
+                {profile.cv_url_fr && (
+                  <ButtonLink href={`${profile.cv_url_fr}?download=1`} variant="outline"
+                              target="_blank" rel="noreferrer noopener">
+                    <Download size={14} strokeWidth={2.2} /> {tr('hero.cta.cv')}
+                  </ButtonLink>
+                )}
                 <div className="flex items-center gap-2 ps-1">
                   <a
                     href={content.meta.github}

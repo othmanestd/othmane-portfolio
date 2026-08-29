@@ -6,11 +6,13 @@ unreachable, so the site renders even during a database incident.
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import time
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request, Response
+from fastapi.responses import RedirectResponse
 
 from _lib import content as C
 from _lib.db import db_healthy, get_db, serialize_many
@@ -180,6 +182,40 @@ async def vcard() -> Response:
             "Cache-Control": "public, max-age=3600",
         },
     )
+
+
+_STATIC_CV = "/cv/othmane-sadiki-data-engineer-fr.pdf"
+
+
+@router.get("/api/cv")
+async def get_cv(download: bool = False):
+    """Serve the current CV.
+
+    A CV uploaded through the admin lives in Mongo and takes precedence; with
+    none uploaded (or the DB down) we fall back to the PDF bundled in the build,
+    so the download button always resolves to something.
+    """
+    if await db_healthy():
+        try:
+            doc = await get_db().assets.find_one({"key": "cv_fr"})
+        except Exception:
+            doc = None
+        if doc and doc.get("content_b64"):
+            try:
+                data = base64.b64decode(doc["content_b64"])
+                disposition = "attachment" if download else "inline"
+                filename = doc.get("filename") or "othmane-sadiki-cv.pdf"
+                return Response(
+                    content=data,
+                    media_type="application/pdf",
+                    headers={
+                        "Content-Disposition": f'{disposition}; filename="{filename}"',
+                        "Cache-Control": "public, max-age=300",
+                    },
+                )
+            except Exception:
+                pass
+    return RedirectResponse(url=_STATIC_CV)
 
 
 @router.post("/api/track")

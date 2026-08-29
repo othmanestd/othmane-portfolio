@@ -1,6 +1,7 @@
 """Admin API. Every route below the login endpoint requires a valid bearer token."""
 from __future__ import annotations
 
+import base64
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -17,6 +18,7 @@ from _lib.db import db_healthy, ensure_indexes, get_db, ping_detail, serialize, 
 from _lib.schemas import (
     AppointmentStatusUpdate,
     AwardPayload,
+    CvUpload,
     ExperiencePayload,
     KbDocPayload,
     LinkPayload,
@@ -396,6 +398,70 @@ async def update_profile(payload: ProfilePayload) -> dict:
     doc["updated_at"] = datetime.now(timezone.utc)
     await get_db().profile.update_one({"key": "main"}, {"$set": doc}, upsert=True)
     return {"ok": True, "item": doc}
+
+
+# --- CV upload ------------------------------------------------------------
+_MAX_CV_BYTES = 8 * 1024 * 1024
+
+
+@guarded_db.get("/cv")
+async def cv_status() -> dict:
+    """Report whether a custom CV is stored and its metadata."""
+    try:
+        doc = await get_db().assets.find_one({"key": "cv_fr"}, {"content_b64": 0})
+    except Exception:
+        doc = None
+    if not doc:
+        return {"exists": False, "source": "bundled", "url": "/api/cv"}
+    return {
+        "exists": True,
+        "source": "uploaded",
+        "filename": doc.get("filename", ""),
+        "size": doc.get("size", 0),
+        "updated_at": doc["updated_at"].isoformat() if isinstance(doc.get("updated_at"), datetime) else "",
+        "url": "/api/cv",
+    }
+
+
+@guarded_db.post("/cv")
+async def upload_cv(payload: CvUpload) -> dict:
+    raw = payload.content_b64.strip()
+    # Tolerate a data: URL wrapper (data:application/pdf;base64,....).
+    if raw.startswith("data:") and "," in raw:
+        raw = raw.split(",", 1)[1]
+    try:
+        data = base64.b64decode(raw, validate=False)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file data")
+    if not data[:5].startswith(b"%PDF"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+    if len(data) > _MAX_CV_BYTES:
+        raise HTTPException(status_code=400, detail="File too large (max 8 MB)")
+
+    await get_db().assets.update_one(
+        {"key": "cv_fr"},
+        {"$set": {
+            "key": "cv_fr",
+            "filename": (payload.filename or "othmane-sadiki-cv.pdf")[:200],
+            "content_b64": base64.b64encode(data).decode("ascii"),
+            "content_type": "application/pdf",
+            "size": len(data),
+            "updated_at": datetime.now(timezone.utc),
+        }},
+        upsert=True,
+    )
+    # Point the public download at the dynamic endpoint so the new file is served.
+    await get_db().profile.update_one(
+        {"key": "main"}, {"$set": {"cv_url_fr": "/api/cv"}}, upsert=True
+    )
+    return {"ok": True, "size": len(data), "filename": payload.filename}
+
+
+@guarded_db.delete("/cv")
+async def delete_cv() -> dict:
+    """Remove the uploaded CV — the download falls back to the bundled file."""
+    await get_db().assets.delete_one({"key": "cv_fr"})
+    return {"ok": True}
 
 
 # --- knowledge base -------------------------------------------------------

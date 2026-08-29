@@ -147,6 +147,16 @@ export const adminApi = {
       method: 'PUT', body: JSON.stringify(payload),
     }, true),
 
+  cvStatus: () =>
+    request<{ exists: boolean; source: string; filename?: string; size?: number; updated_at?: string; url: string }>(
+      '/api/admin/cv', {}, true,
+    ),
+  uploadCv: (filename: string, content_b64: string) =>
+    request<{ ok: boolean; size: number; filename: string }>('/api/admin/cv', {
+      method: 'POST', body: JSON.stringify({ filename, content_b64 }),
+    }, true),
+  deleteCv: () => request<{ ok: boolean }>('/api/admin/cv', { method: 'DELETE' }, true),
+
   kb: () => request<{
     base: { chunk_id: string; title: string; kind: string; text: string }[]
     custom: { chunk_id: string; title: string; kind: string; text: string; id?: string }[]
