@@ -7,7 +7,6 @@ import { Nav } from '@/components/Nav'
 import { Footer } from '@/components/Footer'
 import { Chatbot } from '@/components/Chatbot'
 import { Cursor } from '@/components/Cursor'
-import { InkBackground } from '@/components/InkBackground'
 import { PageLoader } from '@/components/ui'
 import { trackPageView } from '@/lib/analytics'
 
@@ -44,7 +43,6 @@ function PublicLayout() {
     <>
       <div className="grain" aria-hidden />
       <div className="grid-lines" aria-hidden />
-      <InkBackground />
       <Cursor />
       <Nav />
       <main id="main" className="relative z-10">
@@ -61,7 +59,6 @@ function BareLayout() {
   return (
     <>
       <div className="grain" aria-hidden />
-      <InkBackground />
       <Cursor />
       <main id="main" className="relative z-10">
         <Outlet />
