@@ -745,7 +745,7 @@ PROJECTS = [
         "featured": True,
         "published": True,
         "order": 6,
-        "repo_url": "",
+        "repo_url": "https://github.com/othmanestd/lakehouse-churn",
         "live_url": "",
         "stack": ["Celonis", "Apache Spark 3.5", "SQL", "Power BI", "Jira"],
         "tagline": {
