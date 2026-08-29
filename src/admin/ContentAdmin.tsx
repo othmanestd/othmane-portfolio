@@ -56,29 +56,38 @@ export default function ContentAdmin() {
 function ProfileEditor() {
   const { tr } = useI18n()
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [loaded, setLoaded] = useState(false)
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     adminApi.profile()
       .then((d) => setProfile(d.item as unknown as Profile))
       .catch(() => setProfile(null))
+      .finally(() => setLoaded(true))
   }, [])
 
   async function save() {
     if (!profile) return
     setSaving(true)
     setDone(false)
+    setError('')
     try {
       await adminApi.saveProfile(profile)
       setDone(true)
       setTimeout(() => setDone(false), 2200)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed')
     } finally {
       setSaving(false)
     }
   }
 
-  if (!profile) return <PageLoader label={tr('common.loading')} />
+  // Never spin forever: once the request settles with no data, the database is
+  // down (the banner above explains why), so show a clear state instead.
+  if (!loaded) return <PageLoader label={tr('common.loading')} />
+  if (!profile) return <EmptyState label={tr('admin.dbEmpty')} />
 
   return (
     <Panel>
@@ -135,6 +144,7 @@ function ProfileEditor() {
           Available for work
         </label>
         <div className="ms-auto flex items-center gap-3">
+          {error && <span className="label-tight" style={{ color: 'var(--fg-dim)' }}>{error}</span>}
           {done && <span className="label-tight">{tr('admin.saved')}</span>}
           <Button variant="solid" magnetic={false} onClick={save} disabled={saving}>
             {saving ? <><Spinner /> …</> : <><Save size={13} strokeWidth={2.3} /> {tr('admin.save')}</>}

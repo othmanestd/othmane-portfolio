@@ -159,6 +159,7 @@ export const dict = {
     'admin.complete': 'Complete',
     'admin.pending': 'Pending',
     'admin.empty': 'Nothing here yet',
+    'admin.dbEmpty': 'Unavailable while the database is unreachable — see the banner above.',
   },
 
   fr: {
@@ -315,6 +316,7 @@ export const dict = {
     'admin.complete': 'Terminer',
     'admin.pending': 'En attente',
     'admin.empty': 'Rien pour le moment',
+    'admin.dbEmpty': 'Indisponible tant que la base de données est injoignable — voir la bannière ci-dessus.',
   },
 
   ar: {
@@ -471,6 +473,7 @@ export const dict = {
     'admin.complete': 'إنهاء',
     'admin.pending': 'قيد الانتظار',
     'admin.empty': 'لا شيء بعد',
+    'admin.dbEmpty': 'غير متاح ما دامت قاعدة البيانات غير متصلة — انظر الشريط أعلاه.',
   },
 } satisfies Record<Locale, Record<string, string>>
 
