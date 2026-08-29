@@ -4,6 +4,7 @@ import { useI18n } from '@/i18n'
 import { useContent } from '@/hooks/useContent'
 import { t } from '@/lib/utils'
 import { Marquee } from './Marquee'
+import { EmailLink } from './EmailLink'
 
 export function Footer() {
   const { tr, locale } = useI18n()
@@ -30,12 +31,12 @@ export function Footer() {
             <p className="mb-7 max-w-sm text-base leading-relaxed" style={{ color: 'var(--fg-dim)' }}>
               {profile ? t(profile.bio, locale) : ''}
             </p>
-            <a
-              href={`mailto:${profile?.email || ''}`}
+            <EmailLink
+              email={profile?.email || ''}
               className="link-rule mono text-sm break-all"
             >
               {profile?.email}
-            </a>
+            </EmailLink>
           </div>
 
           <nav className="md:col-span-3 md:col-start-7" aria-label="Footer">
@@ -76,12 +77,12 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a
-                  href={`mailto:${profile?.email || ''}`}
+                <EmailLink
+                  email={profile?.email || ''}
                   className="link-rule inline-flex items-center gap-2 text-sm"
                 >
                   <Mail size={14} strokeWidth={2} /> Email
-                </a>
+                </EmailLink>
               </li>
             </ul>
           </div>

@@ -10,6 +10,7 @@ import { useContent } from '@/hooks/useContent'
 import { track } from '@/lib/analytics'
 import { cn, t } from '@/lib/utils'
 import { PageLoader, StatusDot } from '@/components/ui'
+import { EmailLink } from '@/components/EmailLink'
 
 /**
  * Landing page for the physical NFC tag. Optimised for a phone held in one
@@ -79,7 +80,7 @@ export default function Card() {
     { icon: Phone, label: tr('card.call'), href: `tel:${profile.phone}`, event: 'card_call' },
     { icon: MessageCircle, label: tr('card.whatsapp'), href: `https://wa.me/${phoneDigits}`,
       external: true, event: 'card_whatsapp' },
-    { icon: Mail, label: tr('card.email'), href: `mailto:${profile.email}`, event: 'card_email' },
+    { icon: Mail, label: tr('card.email'), href: `mailto:${profile.email}`, event: 'card_email', email: true },
     { icon: Calendar, label: tr('card.book'), to: '/contact', event: 'card_book' },
   ]
 
@@ -221,12 +222,25 @@ export default function Card() {
                 <span className="label-tight">{action.label}</span>
               </>
             )
-            return action.to ? (
-              <Link key={action.label} to={action.to} onClick={() => track(action.event)}
-                    className={classes} style={style}>
-                {body}
-              </Link>
-            ) : (
+            if (action.to) {
+              return (
+                <Link key={action.label} to={action.to} onClick={() => track(action.event)}
+                      className={classes} style={style}>
+                  {body}
+                </Link>
+              )
+            }
+            if (action.email) {
+              return (
+                <span key={action.label} onClick={() => track(action.event)} className="contents">
+                  <EmailLink email={profile.email} className={classes} style={style}
+                             ariaLabel={action.label}>
+                    {body}
+                  </EmailLink>
+                </span>
+              )
+            }
+            return (
               <a
                 key={action.label}
                 href={action.href}

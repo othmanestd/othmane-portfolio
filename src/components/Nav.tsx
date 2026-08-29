@@ -4,6 +4,7 @@ import { ArrowUpRight, Github, Linkedin, Mail, Menu, Moon, Sun, X } from 'lucide
 import { LOCALES, useI18n } from '@/i18n'
 import { useTheme } from '@/hooks/useTheme'
 import { useContent } from '@/hooks/useContent'
+import { EmailLink } from './EmailLink'
 import { cn } from '@/lib/utils'
 import type { Locale } from '@/lib/types'
 
@@ -211,12 +212,11 @@ export function Nav() {
                style={{ borderColor: 'var(--edge-soft)' }}>
               <Linkedin size={16} strokeWidth={2} />
             </a>
-            <a href={`mailto:${content?.profile.email || ''}`}
-               aria-label="Email"
+            <EmailLink email={content?.profile.email || ''} ariaLabel="Email"
                className="flex h-11 flex-1 items-center justify-center border-2 transition-colors hover:invert-block"
                style={{ borderColor: 'var(--edge-soft)' }}>
               <Mail size={16} strokeWidth={2} />
-            </a>
+            </EmailLink>
           </div>
         </div>
       </div>

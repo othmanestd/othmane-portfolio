@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { track } from '@/lib/analytics'
 import { Reveal } from '@/components/Reveal'
 import { Button, SectionHeader, Spinner } from '@/components/ui'
+import { EmailLink } from '@/components/EmailLink'
 import { cn, formatDay, formatTime, pad } from '@/lib/utils'
 
 type Status = 'idle' | 'sending' | 'sent' | 'error'
@@ -68,27 +69,41 @@ export default function Contact() {
         </Reveal>
         <div className="grid gap-px sm:grid-cols-2 lg:grid-cols-4" style={{ background: 'var(--edge-soft)' }}>
           {[
-            { icon: Mail, label: 'Email', value: profile?.email ?? '', href: `mailto:${profile?.email ?? ''}` },
+            { icon: Mail, label: 'Email', value: profile?.email ?? '', href: `mailto:${profile?.email ?? ''}`, email: true },
             { icon: Phone, label: 'Phone', value: profile?.phone ?? '', href: `tel:${profile?.phone ?? ''}` },
             { icon: Linkedin, label: 'LinkedIn', value: 'sadiki-othmane', href: content?.meta.linkedin ?? '#' },
             { icon: Github, label: 'GitHub', value: 'othmanestd', href: content?.meta.github ?? '#' },
-          ].map((channel, index) => (
-            <Reveal key={channel.label} delay={index * 55}>
-              <a
-                href={channel.href}
-                target={channel.href.startsWith('http') ? '_blank' : undefined}
-                rel="noreferrer noopener"
-                className="group flex h-full flex-col justify-between gap-8 p-6 transition-colors hover:invert-block md:p-7"
-                style={{ background: 'var(--bg)' }}
-              >
+          ].map((channel, index) => {
+            const cls = 'group flex h-full flex-col justify-between gap-8 p-6 transition-colors hover:invert-block md:p-7'
+            const inner = (
+              <>
                 <channel.icon size={19} strokeWidth={1.8} />
                 <div className="min-w-0">
                   <p className="label mb-1.5 group-hover:opacity-70">{channel.label}</p>
                   <p className="mono truncate text-sm">{channel.value}</p>
                 </div>
-              </a>
-            </Reveal>
-          ))}
+              </>
+            )
+            return (
+              <Reveal key={channel.label} delay={index * 55}>
+                {channel.email ? (
+                  <EmailLink email={profile?.email ?? ''} className={cls} style={{ background: 'var(--bg)' }}>
+                    {inner}
+                  </EmailLink>
+                ) : (
+                  <a
+                    href={channel.href}
+                    target={channel.href.startsWith('http') ? '_blank' : undefined}
+                    rel="noreferrer noopener"
+                    className={cls}
+                    style={{ background: 'var(--bg)' }}
+                  >
+                    {inner}
+                  </a>
+                )}
+              </Reveal>
+            )
+          })}
         </div>
 
         {profile?.location && (

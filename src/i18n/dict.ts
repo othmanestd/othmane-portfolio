@@ -116,6 +116,7 @@ export const dict = {
     'card.tapNfc': 'Tap · scan · save',
     'card.portfolio': 'View full portfolio',
 
+    'email.copied': 'Email copied to clipboard',
     'footer.built': 'Designed and built by Othmane Sadiki',
     'footer.stack': 'React · FastAPI · MongoDB · Vercel',
     'footer.top': 'Back to top',
@@ -278,6 +279,7 @@ export const dict = {
     'card.tapNfc': 'Approchez · scannez · enregistrez',
     'card.portfolio': 'Voir le portfolio complet',
 
+    'email.copied': 'Email copié dans le presse-papier',
     'footer.built': 'Conçu et développé par Othmane Sadiki',
     'footer.stack': 'React · FastAPI · MongoDB · Vercel',
     'footer.top': 'Haut de page',
@@ -440,6 +442,7 @@ export const dict = {
     'card.tapNfc': 'قرّب · امسح · احفظ',
     'card.portfolio': 'عرض الملف الكامل',
 
+    'email.copied': 'تم نسخ البريد',
     'footer.built': 'من تصميم وتطوير عثمان صديقي',
     'footer.stack': 'React · FastAPI · MongoDB · Vercel',
     'footer.top': 'إلى الأعلى',
