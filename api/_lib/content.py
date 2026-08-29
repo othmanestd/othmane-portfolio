@@ -9,11 +9,9 @@ rather than English with translations bolted on.
 """
 from __future__ import annotations
 
-PHOTO_URL = (
-    "https://media.licdn.com/dms/image/v2/D4E03AQGDMGlz_TCPDQ/"
-    "profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/"
-    "1730714206627?e=1789603200&v=beta&t=UD_DG1k2otFOFbxPzZA35PhdIsU45cP5NY6L6UMNb8I"
-)
+# Self-hosted so it never expires or gets hotlink-blocked (the LinkedIn CDN URL
+# carries an `e=` expiry). The file lives in public/.
+PHOTO_URL = "/othmane-sadiki.jpg"
 
 GITHUB_URL = "https://github.com/othmanestd"
 LINKEDIN_URL = "https://www.linkedin.com/in/sadiki-othmane/"
