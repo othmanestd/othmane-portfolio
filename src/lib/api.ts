@@ -88,6 +88,8 @@ export const adminApi = {
     }),
 
   me: () => request<{ email: string; role: string }>('/api/admin/me', {}, true),
+  dbStatus: () =>
+    request<{ healthy: boolean; error: string; hint: string }>('/api/admin/db-status', {}, true),
   stats: () => request<AdminStats>('/api/admin/stats', {}, true),
   analytics: (days = 30) =>
     request<{

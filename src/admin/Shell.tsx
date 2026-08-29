@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import {
-  BarChart3, Bell, Brain, Calendar, FileText, FolderKanban,
+  BarChart3, Bell, Brain, Calendar, CheckCheck, Database, FileText, FolderKanban,
   LayoutDashboard, LogOut, Mail, Menu, Moon, Sun, X,
 } from 'lucide-react'
 import { useI18n } from '@/i18n'
@@ -28,7 +28,9 @@ export default function Shell({
   const [open, setOpen] = useState(false)
   const [bell, setBell] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [dbDown, setDbDown] = useState<{ down: boolean; hint: string }>({ down: false, hint: '' })
 
+  const bellRef = useRef<HTMLDivElement>(null)
   const unread = notifications.filter((n) => !n.read).length
 
   const load = () => {
@@ -37,13 +39,38 @@ export default function Shell({
       .catch(() => setNotifications([]))
   }
 
+  const checkDb = () => {
+    adminApi.dbStatus()
+      .then((s) => setDbDown({ down: !s.healthy, hint: s.hint }))
+      .catch(() => setDbDown({ down: true, hint: '' }))
+  }
+
   useEffect(() => {
     load()
-    const timer = window.setInterval(load, 60_000)
+    checkDb()
+    const timer = window.setInterval(() => { load(); checkDb() }, 60_000)
     return () => window.clearInterval(timer)
   }, [])
 
+  // Close the notification panel on outside click or Escape — the bug was that
+  // it stayed pinned open over the whole dashboard.
+  useEffect(() => {
+    if (!bell) return
+    const onDown = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBell(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setBell(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [bell])
+
   async function markAllRead() {
+    // Optimistic: clear the badge immediately, then persist.
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
     await adminApi.readAllNotifications().catch(() => undefined)
     load()
   }
@@ -54,8 +81,8 @@ export default function Shell({
 
       {/* --- top bar --- */}
       <header
-        className="glass glass-strong sticky top-0 z-50 flex items-center justify-between gap-4 border-b-2 px-4 py-3"
-        style={{ borderColor: 'var(--edge)' }}
+        className="sticky top-0 z-50 flex items-center justify-between gap-4 border-b-2 px-4 py-3"
+        style={{ background: 'var(--bg-raised)', borderColor: 'var(--edge)' }}
       >
         <div className="flex items-center gap-3">
           <button
@@ -73,11 +100,12 @@ export default function Shell({
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="relative">
+          <div className="relative" ref={bellRef}>
             <button
-              onClick={() => { setBell((v) => !v); if (!bell && unread) markAllRead() }}
+              onClick={() => setBell((v) => !v)}
               aria-label="Notifications"
-              className="relative flex h-9 w-9 items-center justify-center border-2"
+              aria-expanded={bell}
+              className="relative flex h-9 w-9 items-center justify-center border-2 transition-colors hover:invert-block"
               style={{ borderColor: 'var(--edge-soft)' }}
             >
               <Bell size={14} strokeWidth={2.2} />
@@ -86,34 +114,56 @@ export default function Shell({
                   className="absolute -end-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center px-1 text-[9px] font-bold invert-block"
                   style={{ border: '1px solid var(--edge)' }}
                 >
-                  {unread}
+                  {unread > 9 ? '9+' : unread}
                 </span>
               )}
             </button>
 
             {bell && (
               <div
-                className="glass glass-strong absolute end-0 top-11 z-50 max-h-[420px] w-[320px] overflow-y-auto border-2"
-                style={{ borderColor: 'var(--edge)', boxShadow: 'var(--shadow-hard-sm)' }}
+                className="absolute end-0 top-11 z-[60] flex max-h-[70vh] w-[min(340px,calc(100vw-2rem))] flex-col border-2"
+                style={{ background: 'var(--bg-raised)', borderColor: 'var(--edge)', boxShadow: 'var(--shadow-hard)' }}
               >
-                {notifications.length === 0 ? (
-                  <p className="label p-5 text-center">{tr('admin.empty')}</p>
-                ) : (
-                  <ul>
-                    {notifications.map((item) => (
-                      <li key={item.id} className="border-b p-3.5"
-                          style={{ borderColor: 'var(--edge-soft)' }}>
-                        <p className="mb-1 text-[0.85rem] font-bold leading-snug">{item.title}</p>
-                        <p className="label-tight mb-1.5 line-clamp-2" style={{ color: 'var(--fg-dim)' }}>
-                          {item.body}
-                        </p>
-                        <p className="label-tight" style={{ color: 'var(--fg-faint)' }}>
-                          {relativeTime(item.created_at, locale)}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <div className="flex items-center justify-between border-b-2 px-4 py-3"
+                     style={{ borderColor: 'var(--edge)' }}>
+                  <span className="label">Notifications</span>
+                  {unread > 0 && (
+                    <button
+                      onClick={markAllRead}
+                      className="label-tight inline-flex items-center gap-1.5 opacity-70 hover:opacity-100"
+                    >
+                      <CheckCheck size={12} strokeWidth={2.2} /> {tr('admin.markRead')}
+                    </button>
+                  )}
+                </div>
+
+                <div className="no-scrollbar flex-1 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="label p-8 text-center">{tr('admin.empty')}</p>
+                  ) : (
+                    <ul>
+                      {notifications.map((item) => (
+                        <li
+                          key={item.id}
+                          className={cn('border-b px-4 py-3.5', !item.read && 'relative')}
+                          style={{ borderColor: 'var(--edge-soft)' }}
+                        >
+                          {!item.read && (
+                            <span className="absolute start-1.5 top-4 h-1.5 w-1.5 rounded-full"
+                                  style={{ background: 'var(--fg)' }} aria-hidden />
+                          )}
+                          <p className="mb-1 text-[0.85rem] font-bold leading-snug ps-2">{item.title}</p>
+                          <p className="label-tight mb-1.5 line-clamp-2 ps-2" style={{ color: 'var(--fg-dim)' }}>
+                            {item.body}
+                          </p>
+                          <p className="label-tight ps-2" style={{ color: 'var(--fg-faint)' }}>
+                            {relativeTime(item.created_at, locale)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -121,7 +171,7 @@ export default function Shell({
           <button
             onClick={toggle}
             aria-label={tr('theme.toggle')}
-            className="flex h-9 w-9 items-center justify-center border-2"
+            className="flex h-9 w-9 items-center justify-center border-2 transition-colors hover:invert-block"
             style={{ borderColor: 'var(--edge-soft)' }}
           >
             {theme === 'dark' ? <Sun size={14} strokeWidth={2.2} /> : <Moon size={14} strokeWidth={2.2} />}
@@ -144,7 +194,7 @@ export default function Shell({
           className={cn(
             'fixed inset-y-0 z-40 w-[240px] border-e-2 pt-20 transition-transform duration-400 lg:sticky lg:top-[57px] lg:h-[calc(100svh-57px)] lg:translate-x-0 lg:pt-6',
             '[transition-timing-function:var(--ease-out-expo)]',
-            open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full',
+            open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full lg:rtl:translate-x-0',
           )}
           style={{ background: 'var(--bg-raised)', borderColor: 'var(--edge)' }}
         >
@@ -180,8 +230,38 @@ export default function Shell({
           />
         )}
 
-        <main className="min-w-0 flex-1 p-4 md:p-8">{children}</main>
+        <main className="min-w-0 flex-1 p-4 md:p-8">
+          {dbDown.down && <DbBanner hint={dbDown.hint} onRetry={checkDb} />}
+          {children}
+        </main>
       </div>
+    </div>
+  )
+}
+
+/** Prominent, unmissable banner shown whenever the API can't reach MongoDB. */
+function DbBanner({ hint, onRetry }: { hint: string; onRetry: () => void }) {
+  return (
+    <div
+      className="mb-6 flex flex-col gap-3 border-2 p-4 sm:flex-row sm:items-center sm:justify-between"
+      style={{ borderColor: 'var(--edge)', background: 'var(--glass-bg-strong)' }}
+    >
+      <div className="flex items-start gap-3">
+        <Database size={18} strokeWidth={2} className="mt-0.5 shrink-0" />
+        <div>
+          <p className="text-sm font-bold">Database unreachable</p>
+          <p className="label-tight mt-1 leading-relaxed" style={{ color: 'var(--fg-dim)' }}>
+            {hint || 'The server cannot reach MongoDB. Messages, content and analytics will appear once it can connect.'}
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={onRetry}
+        className="label-tight shrink-0 self-start border-2 px-3 py-2 transition-colors hover:invert-block sm:self-auto"
+        style={{ borderColor: 'var(--edge)' }}
+      >
+        Retry
+      </button>
     </div>
   )
 }

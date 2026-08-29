@@ -90,6 +90,7 @@ async def chat(payload: ChatRequest, request: Request) -> ChatResponse:
     return ChatResponse(
         reply=result["reply"],
         sources=result["sources"],
+        cards=result.get("cards", []),
         provider=result["provider"],
         degraded=result["degraded"],
         notice=result["notice"],

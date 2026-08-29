@@ -13,7 +13,7 @@ from _lib import content as C
 from _lib import mailer
 from _lib.auth import create_access_token, require_admin, verify_admin_credentials
 from _lib.config import settings
-from _lib.db import ensure_indexes, get_db, serialize, serialize_many
+from _lib.db import db_healthy, ensure_indexes, get_db, ping_detail, serialize, serialize_many
 from _lib.schemas import (
     AppointmentStatusUpdate,
     AwardPayload,
@@ -29,6 +29,25 @@ from _lib.schemas import (
 
 router = APIRouter(prefix="/api/admin")
 guarded = APIRouter(prefix="/api/admin", dependencies=[Depends(require_admin)])
+
+
+async def require_db() -> None:
+    """Fail fast when the cluster is unreachable.
+
+    Without this every admin data route stalls on the connection timeout, which
+    is exactly the "everything is slow and nothing works" symptom. The breaker
+    makes the failure instant and machine-readable so the UI can show a banner.
+    """
+    if not await db_healthy():
+        raise HTTPException(status_code=503, detail="DATABASE_UNREACHABLE")
+
+
+# Routes that actually touch MongoDB hang off this router so they short-circuit
+# the moment the database is down, instead of timing out one query at a time.
+guarded_db = APIRouter(
+    prefix="/api/admin",
+    dependencies=[Depends(require_admin), Depends(require_db)],
+)
 
 
 def _oid(value: str) -> ObjectId:
@@ -52,12 +71,45 @@ async def me(admin: dict = Depends(require_admin)) -> dict:
     return {"email": admin.get("sub"), "role": admin.get("role")}
 
 
+@guarded.get("/db-status")
+async def db_status() -> dict:
+    """Cheap probe the admin shell polls to show a global connectivity banner."""
+    ok, error = await ping_detail()
+    return {
+        "healthy": ok,
+        "error": error,
+        "hint": "" if ok else (
+            "MongoDB is unreachable from the server. In MongoDB Atlas open "
+            "Network Access and add 0.0.0.0/0 (allow from anywhere) so Vercel's "
+            "functions can connect."
+        ),
+    }
+
+
 # --- dashboard ------------------------------------------------------------
 @guarded.get("/stats")
 async def stats() -> dict:
-    db = get_db()
     now = datetime.now(timezone.utc)
     week_ago = now - timedelta(days=7)
+
+    # Short-circuit fast when the database is down so the dashboard renders a
+    # banner immediately instead of waiting on a wall of timeouts.
+    if not await db_healthy():
+        empty_days = [
+            {"date": (now - timedelta(days=o)).strftime("%Y-%m-%d"), "count": 0}
+            for o in range(7, -1, -1)
+        ]
+        return {
+            "messages_total": 0, "messages_unread": 0,
+            "appointments_total": 0, "appointments_pending": 0, "appointments_upcoming": 0,
+            "projects_total": 0, "projects_published": 0, "notifications_unread": 0,
+            "page_views_7d": 0, "chat_messages_7d": 0,
+            "events_by_day": empty_days, "top_paths": [],
+            "health": {"db": False, "smtp": settings.has_smtp,
+                       "gemini": settings.has_gemini, "llm_fallback": settings.has_llm_fallback},
+        }
+
+    db = get_db()
 
     async def _count(collection: str, query: dict) -> int:
         try:
@@ -119,7 +171,7 @@ async def stats() -> dict:
     }
 
 
-@guarded.get("/analytics")
+@guarded_db.get("/analytics")
 async def analytics(days: int = Query(30, ge=1, le=180)) -> dict:
     db = get_db()
     since = datetime.now(timezone.utc) - timedelta(days=days)
@@ -162,7 +214,7 @@ async def analytics(days: int = Query(30, ge=1, le=180)) -> dict:
 
 
 # --- notifications --------------------------------------------------------
-@guarded.get("/notifications")
+@guarded_db.get("/notifications")
 async def list_notifications(limit: int = Query(30, ge=1, le=100)) -> dict:
     try:
         docs = await get_db().notifications.find({}).sort(
@@ -172,20 +224,20 @@ async def list_notifications(limit: int = Query(30, ge=1, le=100)) -> dict:
         return {"items": []}
 
 
-@guarded.post("/notifications/read-all")
+@guarded_db.post("/notifications/read-all")
 async def mark_notifications_read() -> dict:
     result = await get_db().notifications.update_many({"read": False}, {"$set": {"read": True}})
     return {"ok": True, "updated": result.modified_count}
 
 
-@guarded.delete("/notifications/{notification_id}")
+@guarded_db.delete("/notifications/{notification_id}")
 async def delete_notification(notification_id: str) -> dict:
     await get_db().notifications.delete_one({"_id": _oid(notification_id)})
     return {"ok": True}
 
 
 # --- messages -------------------------------------------------------------
-@guarded.get("/messages")
+@guarded_db.get("/messages")
 async def list_messages(archived: bool = False,
                         limit: int = Query(100, ge=1, le=300)) -> dict:
     docs = await get_db().messages.find({"archived": archived}).sort(
@@ -193,7 +245,7 @@ async def list_messages(archived: bool = False,
     return {"items": serialize_many(docs)}
 
 
-@guarded.patch("/messages/{message_id}")
+@guarded_db.patch("/messages/{message_id}")
 async def update_message(message_id: str, patch: dict[str, Any]) -> dict:
     allowed = {k: v for k, v in patch.items() if k in {"read", "archived", "replied"}}
     if not allowed:
@@ -203,7 +255,7 @@ async def update_message(message_id: str, patch: dict[str, Any]) -> dict:
     return {"ok": True, "item": serialize(doc)}
 
 
-@guarded.post("/messages/{message_id}/reply")
+@guarded_db.post("/messages/{message_id}/reply")
 async def reply_to_message(message_id: str, payload: dict[str, Any],
                            background: BackgroundTasks) -> dict:
     body = (payload.get("body") or "").strip()
@@ -229,14 +281,14 @@ async def reply_to_message(message_id: str, payload: dict[str, Any],
     return {"ok": True}
 
 
-@guarded.delete("/messages/{message_id}")
+@guarded_db.delete("/messages/{message_id}")
 async def delete_message(message_id: str) -> dict:
     await get_db().messages.delete_one({"_id": _oid(message_id)})
     return {"ok": True}
 
 
 # --- appointments ---------------------------------------------------------
-@guarded.get("/appointments")
+@guarded_db.get("/appointments")
 async def list_appointments(status: str = "", limit: int = Query(100, ge=1, le=300)) -> dict:
     query = {"status": status} if status else {}
     docs = await get_db().appointments.find(query).sort(
@@ -244,7 +296,7 @@ async def list_appointments(status: str = "", limit: int = Query(100, ge=1, le=3
     return {"items": serialize_many(docs)}
 
 
-@guarded.patch("/appointments/{appointment_id}")
+@guarded_db.patch("/appointments/{appointment_id}")
 async def update_appointment(appointment_id: str, payload: AppointmentStatusUpdate,
                              background: BackgroundTasks) -> dict:
     db = get_db()
@@ -264,7 +316,7 @@ async def update_appointment(appointment_id: str, payload: AppointmentStatusUpda
     return {"ok": True, "item": serialize(updated)}
 
 
-@guarded.delete("/appointments/{appointment_id}")
+@guarded_db.delete("/appointments/{appointment_id}")
 async def delete_appointment(appointment_id: str) -> dict:
     await get_db().appointments.delete_one({"_id": _oid(appointment_id)})
     return {"ok": True}
@@ -318,10 +370,10 @@ def _crud(collection: str, model: type[BaseModel]) -> None:
     _update.__annotations__ = {"item_id": str, "payload": model, "return": dict}
     _delete.__annotations__ = {"item_id": str, "return": dict}
 
-    guarded.get(f"/{collection}", name=f"list_{collection}")(_list)
-    guarded.post(f"/{collection}", name=f"create_{collection}")(_create)
-    guarded.put(f"/{collection}/{{item_id}}", name=f"update_{collection}")(_update)
-    guarded.delete(f"/{collection}/{{item_id}}", name=f"delete_{collection}")(_delete)
+    guarded_db.get(f"/{collection}", name=f"list_{collection}")(_list)
+    guarded_db.post(f"/{collection}", name=f"create_{collection}")(_create)
+    guarded_db.put(f"/{collection}/{{item_id}}", name=f"update_{collection}")(_update)
+    guarded_db.delete(f"/{collection}/{{item_id}}", name=f"delete_{collection}")(_delete)
 
 
 _crud("projects", ProjectPayload)
@@ -332,13 +384,13 @@ _crud("links", LinkPayload)
 
 
 # --- profile --------------------------------------------------------------
-@guarded.get("/profile")
+@guarded_db.get("/profile")
 async def get_profile() -> dict:
     doc = await get_db().profile.find_one({"key": "main"}, {"_id": 0, "key": 0})
     return {"item": doc or C.PROFILE}
 
 
-@guarded.put("/profile")
+@guarded_db.put("/profile")
 async def update_profile(payload: ProfilePayload) -> dict:
     doc = payload.model_dump()
     doc["updated_at"] = datetime.now(timezone.utc)
@@ -347,7 +399,7 @@ async def update_profile(payload: ProfilePayload) -> dict:
 
 
 # --- knowledge base -------------------------------------------------------
-@guarded.get("/kb")
+@guarded_db.get("/kb")
 async def list_kb() -> dict:
     from _lib.rag import build_base_kb
 
@@ -362,7 +414,7 @@ async def list_kb() -> dict:
     }
 
 
-@guarded.post("/kb")
+@guarded_db.post("/kb")
 async def upsert_kb(payload: KbDocPayload) -> dict:
     doc = payload.model_dump()
     doc["updated_at"] = datetime.now(timezone.utc)
@@ -372,14 +424,14 @@ async def upsert_kb(payload: KbDocPayload) -> dict:
     return {"ok": True}
 
 
-@guarded.delete("/kb/{chunk_id}")
+@guarded_db.delete("/kb/{chunk_id}")
 async def delete_kb(chunk_id: str) -> dict:
     await get_db().kb_chunks.delete_one({"chunk_id": chunk_id})
     return {"ok": True}
 
 
 # --- maintenance ----------------------------------------------------------
-@guarded.post("/seed")
+@guarded_db.post("/seed")
 async def reseed(force: bool = False) -> dict:
     """Populate empty collections from content.py. `force=true` overwrites."""
     from _lib.seed import run_seed

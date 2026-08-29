@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { Menu, Moon, Sun, X } from 'lucide-react'
+import { ArrowUpRight, Github, Linkedin, Mail, Menu, Moon, Sun, X } from 'lucide-react'
 import { LOCALES, useI18n } from '@/i18n'
 import { useTheme } from '@/hooks/useTheme'
+import { useContent } from '@/hooks/useContent'
 import { cn } from '@/lib/utils'
 import type { Locale } from '@/lib/types'
 
@@ -16,6 +17,7 @@ const routes = [
 export function Nav() {
   const { tr, locale, setLocale } = useI18n()
   const { theme, toggle } = useTheme()
+  const { content } = useContent()
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const location = useLocation()
@@ -123,55 +125,99 @@ export function Nav() {
         </nav>
       </header>
 
-      {/* Mobile sheet */}
+      {/* Mobile fullscreen menu */}
       <div
         className={cn(
-          'fixed inset-0 z-[130] md:hidden',
-          open ? 'pointer-events-auto' : 'pointer-events-none',
+          'fixed inset-0 z-[130] flex flex-col md:hidden',
+          '[transition:opacity_0.4s_var(--ease-out-expo),visibility_0.4s]',
+          open ? 'visible opacity-100' : 'invisible opacity-0',
         )}
+        style={{ background: 'var(--bg)' }}
         aria-hidden={!open}
       >
-        <div
-          onClick={() => setOpen(false)}
-          className={cn(
-            'absolute inset-0 backdrop-blur-md transition-opacity duration-400',
-            open ? 'opacity-100' : 'opacity-0',
-          )}
-          style={{ background: 'color-mix(in srgb, var(--bg) 82%, transparent)' }}
-        />
-        <div
-          className={cn(
-            'absolute inset-x-0 top-0 border-b-2 px-6 pb-10 pt-5 transition-transform duration-500',
-            '[transition-timing-function:var(--ease-out-expo)]',
-            open ? 'translate-y-0' : '-translate-y-full',
-          )}
-          style={{ background: 'var(--bg-raised)', borderColor: 'var(--edge)' }}
-        >
-          <div className="mb-8 flex items-center justify-between">
-            <span className="label">{tr('nav.menu')}</span>
-            <button
-              onClick={() => setOpen(false)}
-              aria-label={tr('nav.close')}
-              className="flex h-9 w-9 items-center justify-center border-2"
-              style={{ borderColor: 'var(--edge)' }}
-            >
-              <X size={16} strokeWidth={2.2} />
-            </button>
-          </div>
+        <div className="mesh opacity-60" aria-hidden />
 
-          <ul className="space-y-1">
+        {/* header row */}
+        <div
+          className="relative z-10 flex items-center justify-between border-b-2 px-5 py-4"
+          style={{ borderColor: 'var(--edge)' }}
+        >
+          <Link to="/" onClick={() => setOpen(false)} className="flex items-baseline gap-2">
+            <span className="display text-lg">OTHMANE</span>
+            <span className="serif-accent text-lg opacity-60">Sadiki</span>
+          </Link>
+          <button
+            onClick={() => setOpen(false)}
+            aria-label={tr('nav.close')}
+            className="flex h-10 w-10 items-center justify-center border-2"
+            style={{ borderColor: 'var(--edge)' }}
+          >
+            <X size={18} strokeWidth={2.2} />
+          </button>
+        </div>
+
+        {/* big links */}
+        <nav className="relative z-10 flex flex-1 flex-col justify-center px-5">
+          <ul>
             {routes.map((route, index) => (
               <li key={route.to} className="border-b" style={{ borderColor: 'var(--edge-soft)' }}>
                 <NavLink
                   to={route.to}
-                  className="flex items-baseline gap-4 py-4"
+                  className={({ isActive }) =>
+                    cn('flex items-center gap-4 py-4 transition-all duration-500',
+                       '[transition-timing-function:var(--ease-out-expo)]',
+                       open ? 'translate-x-0 opacity-100' : 'translate-x-6 opacity-0',
+                       isActive ? '' : 'opacity-80')
+                  }
+                  style={{ transitionDelay: open ? `${120 + index * 70}ms` : '0ms' }}
                 >
                   <span className="label opacity-45">[{String(index + 1).padStart(2, '0')}]</span>
-                  <span className="display text-3xl">{tr(route.key)}</span>
+                  <span className="display text-[clamp(2.4rem,13vw,4rem)]">{tr(route.key)}</span>
+                  <ArrowUpRight size={22} strokeWidth={1.8} className="ms-auto opacity-40" />
                 </NavLink>
               </li>
             ))}
           </ul>
+        </nav>
+
+        {/* footer: status + controls + socials */}
+        <div
+          className="relative z-10 space-y-5 border-t-2 px-5 py-6"
+          style={{ borderColor: 'var(--edge)' }}
+        >
+          <div className="flex items-center justify-between gap-4">
+            <LangSwitch locale={locale} setLocale={setLocale} />
+            <button
+              onClick={toggle}
+              aria-label={tr('theme.toggle')}
+              className="flex h-10 items-center gap-2 border-2 px-3"
+              style={{ borderColor: 'var(--edge-soft)' }}
+            >
+              {theme === 'dark' ? <Sun size={15} strokeWidth={2.2} /> : <Moon size={15} strokeWidth={2.2} />}
+              <span className="label-tight">{theme === 'dark' ? tr('theme.light') : tr('theme.dark')}</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <a href={content?.meta.github || '#'} target="_blank" rel="noreferrer noopener"
+               aria-label="GitHub"
+               className="flex h-11 flex-1 items-center justify-center border-2 transition-colors hover:invert-block"
+               style={{ borderColor: 'var(--edge-soft)' }}>
+              <Github size={16} strokeWidth={2} />
+            </a>
+            <a href={content?.meta.linkedin || '#'} target="_blank" rel="noreferrer noopener"
+               aria-label="LinkedIn"
+               className="flex h-11 flex-1 items-center justify-center border-2 transition-colors hover:invert-block"
+               style={{ borderColor: 'var(--edge-soft)' }}>
+              <Linkedin size={16} strokeWidth={2} />
+            </a>
+            <a href={`mailto:${content?.profile.email || ''}`}
+               aria-label="Email"
+               className="flex h-11 flex-1 items-center justify-center border-2 transition-colors hover:invert-block"
+               style={{ borderColor: 'var(--edge-soft)' }}>
+              <Mail size={16} strokeWidth={2} />
+            </a>
+          </div>
         </div>
       </div>
     </>

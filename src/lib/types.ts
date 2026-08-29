@@ -96,9 +96,21 @@ export interface SiteContent {
 
 export interface ChatSource { title: string; kind: string; score: number; excerpt: string }
 
+export interface ChatCard {
+  type: 'project' | 'experience'
+  title: string
+  subtitle: string
+  year: string
+  slug: string
+  url: string
+  repo_url: string
+  tags: string[]
+}
+
 export interface ChatReply {
   reply: string
   sources: ChatSource[]
+  cards: ChatCard[]
   provider: string
   degraded: boolean
   notice: string

@@ -312,24 +312,31 @@ def retrieve(query: str, chunks: list[dict], top_k: int = 5) -> list[tuple[dict,
 
 _LANGUAGE_NAME = {"fr": "French", "en": "English", "ar": "Arabic"}
 
-SYSTEM_PROMPT = """You are Othmane Sadiki himself, answering visitors on your own portfolio website. You are NOT an assistant describing Othmane — you ARE Othmane, speaking in the first person ("I", "je", "أنا").
+SYSTEM_PROMPT = """You ARE Othmane Sadiki, replying to a visitor on your own portfolio. Speak in the first person ("I" / "je" / "أنا"). You are not a bot describing Othmane — you are him, talking about your own work.
 
-Who you are: a Data Engineer based in Casablanca, Morocco. State Engineer in Computer Science from EMSI Casablanca. You work on real-time pipelines, Bronze/Silver/Gold Lakehouse architectures, data quality frameworks, and process mining with Celonis.
+WHO YOU ARE
+A Data Engineer in Casablanca, Morocco, and a State Engineer in Computer Science from EMSI Casablanca (2021–2026). Your home turf is data in motion: real-time ingestion with Spark Structured Streaming, Bronze/Silver/Gold Lakehouse architectures on Delta Lake, data-quality frameworks that fail loudly instead of silently, orchestration with Airflow, and process mining with Celonis. Right now you consult at Silamir, where you migrated SQL pipelines to Apache Spark 3.5 and modelled Bouygues Telecom's event logs into Celonis. Before that: AI/ETL work at ONDA and InsurBT. You have also won a stack of hackathons (Hult Prize Top 50 worldwide, several first prizes) — you compete and you ship.
 
-How you speak:
-- Direct and concrete. You prefer a specific technical detail over a vague claim.
-- Confident about what you have actually built, honest about what you have not.
-- Warm but not salesy. No corporate filler, no "I am passionate about leveraging synergies".
-- Short paragraphs. Two to four sentences is usually enough. Never write an essay unless asked.
-- You may use light technical vocabulary without over-explaining — visitors are usually recruiters or engineers.
+YOUR VOICE
+- Concrete over vague. Reach for the specific detail — "~1000 events/second", "exactly-once via checkpointing + Delta ACID" — not "scalable solutions".
+- Confident about what you built, honest about what you did not. Never oversell.
+- Warm, a little dry, zero corporate filler. Never say "leverage synergies" or "passionate about".
+- Brief. Two to four sentences for most answers. Expand only when genuinely asked to go deep.
+- You talk to recruiters and engineers, so light technical vocabulary is fine.
 
-Hard rules:
-1. Answer ONLY from the CONTEXT provided below. It is drawn from your real CV, projects and notes.
-2. If the context does not cover the question, say so plainly in the visitor's language and point them to the contact form or the booking page. Never invent a job, a client, a date, a metric or a technology.
-3. Reply in {language} — the visitor's language. Match it exactly, including for Arabic (use Modern Standard Arabic).
-4. Never mention "the context", "the documents", "my knowledge base" or that you are an AI. You are simply answering about your own work.
-5. If asked something personal, off-topic or inappropriate, deflect politely and steer back to your work.
-6. When someone asks about hiring, availability or rates, be welcoming and point them to the contact form or booking page.
+FORMATTING (your replies are rendered as Markdown)
+- Lead with a short, direct sentence.
+- When you list projects, skills, or steps, use `-` bullet points — one per line.
+- Use **bold** for the thing that matters in a line (a tool, a metric, a result).
+- Keep it scannable. No walls of text, no headings unless the answer is long.
+
+HARD RULES
+1. Use ONLY the CONTEXT below — it is your real CV, projects and notes. Never invent a job, client, date, metric, or technology.
+2. If the context does not cover it, say so plainly in the visitor's language and point them to the contact form or the booking page. Do not guess.
+3. Reply in {language}, matching the visitor. For Arabic, use clean Modern Standard Arabic.
+4. Never mention "the context", "the documents", "my knowledge base", or that you are an AI. You are simply answering about your own work.
+5. Personal, off-topic, or inappropriate questions: deflect politely, steer back to your work.
+6. On hiring, availability, or rates: be welcoming and point them to the contact form or the booking page. You are open to Data Engineering opportunities.
 
 CONTEXT:
 {context}"""
@@ -464,6 +471,72 @@ def _pick_locale_lines(text: str, locale: str, limit: int = 340) -> str:
     return joined[:limit].rstrip() + ("…" if len(joined) > limit else "")
 
 
+def build_cards(hits: list[tuple[dict, float]], locale: str) -> list[dict]:
+    """Map retrieved chunks to rich project/experience cards for the UI.
+
+    A chunk id like `project-dataflow360` or `exp-silamir` tells us which real
+    entity matched, so the frontend can render a proper box (title, tagline,
+    stack, link) beneath the reply instead of a bare mention.
+    """
+    cards: list[dict] = []
+    seen: set[str] = set()
+
+    for chunk, _ in hits:
+        cid = chunk.get("chunk_id", "")
+
+        if cid.startswith("project-"):
+            slug = cid[len("project-"):].removesuffix("-detail")
+            if slug in seen:
+                continue
+            project = next((p for p in C.PROJECTS if p["slug"] == slug), None)
+            if not project:
+                continue
+            seen.add(slug)
+            cards.append({
+                "type": "project",
+                "slug": project["slug"],
+                "title": project["title"],
+                "subtitle": _tri_loc(project.get("tagline"), locale),
+                "year": project.get("year", ""),
+                "tags": project.get("stack", [])[:4],
+                "url": f"/work/{project['slug']}",
+                "repo_url": project.get("repo_url", ""),
+            })
+
+        elif cid.startswith("exp-"):
+            key = cid[len("exp-"):]
+            if f"exp:{key}" in seen:
+                continue
+            exp = next(
+                (e for e in C.EXPERIENCES
+                 if e["company"].lower().replace(" ", "-")[:32] == key),
+                None,
+            )
+            if not exp:
+                continue
+            seen.add(f"exp:{key}")
+            cards.append({
+                "type": "experience",
+                "title": exp["company"],
+                "subtitle": _tri_loc(exp.get("role"), locale),
+                "year": _tri_loc(exp.get("period"), locale),
+                "tags": exp.get("stack", [])[:4],
+                "url": "",
+                "repo_url": "",
+            })
+
+        if len(cards) >= 3:
+            break
+
+    return cards
+
+
+def _tri_loc(value: Any, locale: str) -> str:
+    if isinstance(value, dict):
+        return value.get(locale) or value.get("en") or value.get("fr") or ""
+    return str(value or "")
+
+
 async def answer(message: str, locale: str, history: list[dict],
                  chunks: list[dict]) -> dict[str, Any]:
     """Retrieve, then generate. Never raises — always returns a usable reply."""
@@ -471,6 +544,7 @@ async def answer(message: str, locale: str, history: list[dict],
     hits = retrieve(message, chunks, top_k=5)
     context = build_context(hits)
     system = SYSTEM_PROMPT.format(language=_LANGUAGE_NAME[locale], context=context)
+    cards = build_cards(hits, locale)
 
     trimmed_history = [
         {"role": t["role"], "content": t["content"]}
@@ -491,6 +565,7 @@ async def answer(message: str, locale: str, history: list[dict],
             return {
                 "reply": reply,
                 "sources": _format_sources(hits),
+                "cards": cards,
                 "provider": name,
                 "degraded": False,
                 "notice": "",
@@ -501,6 +576,7 @@ async def answer(message: str, locale: str, history: list[dict],
     return {
         "reply": _extractive_answer(hits, locale),
         "sources": _format_sources(hits),
+        "cards": cards,
         "provider": "retrieval-only",
         "degraded": True,
         "notice": _DEGRADED_NOTICE.get(locale, _DEGRADED_NOTICE["en"]),

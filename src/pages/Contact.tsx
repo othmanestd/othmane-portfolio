@@ -14,6 +14,7 @@ export default function Contact() {
   const { tr } = useI18n()
   const { content } = useContent()
   const profile = content?.profile
+  const [tab, setTab] = useState<'message' | 'appointment'>('message')
 
   return (
     <>
@@ -28,11 +29,36 @@ export default function Contact() {
         </div>
       </section>
 
-      <section className="relative z-10 mx-auto max-w-[1400px] px-4 pb-20 md:px-8">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Reveal><ContactForm /></Reveal>
-          <Reveal delay={90}><BookingPanel /></Reveal>
+      <section className="relative z-10 mx-auto max-w-[720px] px-4 pb-20 md:px-8">
+        {/* Tab switcher — message vs appointment as two distinct ongles */}
+        <div
+          className="mb-6 grid grid-cols-2 border-2"
+          style={{ borderColor: 'var(--edge)' }}
+          role="tablist"
+        >
+          {([
+            { key: 'message', label: tr('contact.send'), icon: Send },
+            { key: 'appointment', label: tr('booking.title'), icon: Calendar },
+          ] as const).map((t2) => (
+            <button
+              key={t2.key}
+              role="tab"
+              aria-selected={tab === t2.key}
+              onClick={() => setTab(t2.key)}
+              className={cn(
+                'label-tight flex items-center justify-center gap-2.5 px-4 py-3.5 transition-colors',
+                tab === t2.key ? 'invert-block' : 'opacity-60 hover:opacity-100',
+              )}
+            >
+              <t2.icon size={14} strokeWidth={2.2} />
+              {t2.label}
+            </button>
+          ))}
         </div>
+
+        {tab === 'message'
+          ? <Reveal key="message"><ContactForm /></Reveal>
+          : <Reveal key="appointment"><BookingPanel /></Reveal>}
       </section>
 
       {/* direct channels */}

@@ -87,9 +87,21 @@ class ChatSource(BaseModel):
     excerpt: str
 
 
+class ChatCard(BaseModel):
+    type: str  # "project" | "experience"
+    title: str
+    subtitle: str = ""
+    year: str = ""
+    slug: str = ""
+    url: str = ""
+    repo_url: str = ""
+    tags: list[str] = Field(default_factory=list)
+
+
 class ChatResponse(BaseModel):
     reply: str
     sources: list[ChatSource] = Field(default_factory=list)
+    cards: list[ChatCard] = Field(default_factory=list)
     provider: str
     degraded: bool = False
     notice: str = ""

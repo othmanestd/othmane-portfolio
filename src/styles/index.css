@@ -360,6 +360,40 @@ html[lang='ar'] .label-tight {
   transform: scaleX(1);
 }
 
+/* --- chat markdown --------------------------------------------------------- */
+.chat-md > *:first-child { margin-top: 0; }
+.chat-md > *:last-child { margin-bottom: 0; }
+.chat-md p { margin: 0 0 0.6rem; line-height: 1.6; }
+.chat-md strong { font-weight: 700; color: var(--fg); }
+.chat-md h2 {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  margin: 0.7rem 0 0.4rem;
+}
+.chat-md ul { margin: 0 0 0.6rem; padding: 0; list-style: none; }
+.chat-md li {
+  position: relative;
+  padding-inline-start: 0.95rem;
+  margin-bottom: 0.3rem;
+  line-height: 1.55;
+}
+.chat-md li::before {
+  content: '—';
+  position: absolute;
+  inset-inline-start: 0;
+  color: var(--fg-faint);
+}
+.chat-md code {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  background: color-mix(in srgb, var(--fg) 10%, transparent);
+  padding: 0.05em 0.35em;
+  border-radius: 2px;
+}
+
 /* --- loader sweep ---------------------------------------------------------- */
 .loader-sweep {
   animation: loader-sweep 1.15s var(--ease-in-out-quart) infinite;
@@ -394,9 +428,9 @@ html[lang='ar'] .label-tight {
   opacity: 1;
 }
 
-/* --- custom cursor (pointer devices only) --------------------------------- */
+/* --- pixel-art cursor (pointer devices only) ------------------------------ */
 @media (hover: hover) and (pointer: fine) {
-  .cursor-host { cursor: none; }
+  .cursor-host,
   .cursor-host a,
   .cursor-host button,
   .cursor-host input,
@@ -405,35 +439,47 @@ html[lang='ar'] .label-tight {
   .cursor-host [role='button'] { cursor: none; }
 }
 
-.cursor-dot,
-.cursor-ring {
+.pixel-cursor {
   position: fixed;
   top: 0;
   left: 0;
   z-index: 10000;
+  width: 32px;
+  height: 32px;
+  margin: -2px 0 0 -2px; /* hotspot near the arrow tip */
   pointer-events: none;
-  border-radius: 50%;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
   mix-blend-mode: difference;
+  transition: transform 0.05s linear;
+  will-change: transform;
 }
-.cursor-dot {
-  width: 6px;
-  height: 6px;
-  background: #fff;
-  margin: -3px 0 0 -3px;
+.pixel-cursor[data-active='true'] {
+  /* nudge scale up over interactive targets */
+  filter: drop-shadow(0 0 0 #fff);
 }
-.cursor-ring {
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  margin: -17px 0 0 -17px;
-  transition: width 0.28s var(--ease-out-expo), height 0.28s var(--ease-out-expo),
-    margin 0.28s var(--ease-out-expo), border-color 0.28s var(--ease-out-expo);
-}
-.cursor-ring[data-active='true'] {
-  width: 62px;
-  height: 62px;
-  margin: -31px 0 0 -31px;
-  border-color: rgba(255, 255, 255, 0.95);
+
+.pixel-ink-drop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  pointer-events: none;
+  background: var(--fg);
+  mix-blend-mode: difference;
+  image-rendering: pixelated;
+  clip-path: polygon(
+    37% 0, 63% 0, 63% 12%, 75% 12%, 75% 25%, 87% 25%, 87% 50%,
+    100% 50%, 100% 75%, 87% 75%, 87% 87%, 63% 87%, 63% 100%,
+    37% 100%, 37% 87%, 13% 87%, 13% 75%, 0 75%, 0 50%,
+    13% 50%, 13% 25%, 25% 25%, 25% 12%, 37% 12%
+  );
+  opacity: 0.55;
+  will-change: transform;
 }
 
 /* --- forms ---------------------------------------------------------------- */
@@ -549,6 +595,6 @@ html[lang='ar'] .prose-mono h2 {
 }
 
 @media print {
-  .grain, .grid-lines, .mesh, .cursor-dot, .cursor-ring { display: none !important; }
+  .grain, .grid-lines, .mesh, .pixel-cursor, .pixel-ink-drop { display: none !important; }
   body { background: #fff; color: #000; }
 }

@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUp, Eraser, MessageSquare, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ArrowUp, ArrowUpRight, Briefcase, Eraser, FolderKanban, Github, MessageSquare, X } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { track } from '@/lib/analytics'
-import { cn, sessionId } from '@/lib/utils'
-import type { ChatSource } from '@/lib/types'
+import { cn, renderMarkdown, sessionId } from '@/lib/utils'
+import type { ChatCard, ChatSource } from '@/lib/types'
 import { Spinner } from './ui'
 
 interface Turn {
   role: 'user' | 'assistant'
   content: string
   sources?: ChatSource[]
+  cards?: ChatCard[]
   degraded?: boolean
   notice?: string
 }
@@ -33,6 +35,14 @@ export function Chatbot() {
       track('chat_open')
       setTimeout(() => inputRef.current?.focus(), 380)
     }
+  }, [open])
+
+  // Lock body scroll while the chat is open (it is a modal on mobile).
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
   }, [open])
 
   useEffect(() => {
@@ -66,6 +76,7 @@ export function Chatbot() {
         role: 'assistant',
         content: reply.reply,
         sources: reply.sources,
+        cards: reply.cards,
         degraded: reply.degraded,
         notice: reply.notice,
       }])
@@ -111,22 +122,25 @@ export function Chatbot() {
         aria-label={tr('chat.title')}
         aria-hidden={!open}
       >
+        {/* Backdrop on every breakpoint so nothing bleeds through behind the panel. */}
         <div
           onClick={() => setOpen(false)}
           className={cn(
-            'absolute inset-0 backdrop-blur-sm transition-opacity duration-400 sm:hidden',
+            'absolute inset-0 backdrop-blur-sm transition-opacity duration-400',
             open ? 'opacity-100' : 'opacity-0',
           )}
-          style={{ background: 'color-mix(in srgb, var(--bg) 70%, transparent)' }}
+          style={{ background: 'color-mix(in srgb, var(--bg) 62%, transparent)' }}
         />
 
         <div
           className={cn(
-            'glass glass-strong relative flex h-[86dvh] w-full flex-col border-2 transition-all duration-500 sm:h-[620px] sm:max-h-[80dvh] sm:w-[440px]',
+            'relative flex h-[88dvh] w-full flex-col border-2 transition-all duration-500 sm:h-[640px] sm:max-h-[82dvh] sm:w-[420px]',
             '[transition-timing-function:var(--ease-out-expo)]',
             open ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0',
           )}
-          style={{ borderColor: 'var(--edge)', boxShadow: 'var(--shadow-hard)' }}
+          // Solid surface — the transparent panel was letting the hero portrait
+          // bleed through and made the text unreadable.
+          style={{ background: 'var(--bg-raised)', borderColor: 'var(--edge)', boxShadow: 'var(--shadow-hard)' }}
         >
           {/* Header */}
           <div
@@ -165,15 +179,16 @@ export function Chatbot() {
           <div ref={scrollRef} className="no-scrollbar flex-1 space-y-4 overflow-y-auto px-4 py-5">
             {turns.length === 0 && (
               <>
-                <Bubble role="assistant">{tr('chat.greeting')}</Bubble>
+                <Bubble role="assistant" content={tr('chat.greeting')} />
                 <div className="space-y-2 pt-1">
                   {suggestions.map((suggestion) => (
                     <button
                       key={suggestion}
                       onClick={() => send(suggestion)}
-                      className="w-full border-2 px-3.5 py-2.5 text-start text-[0.8rem] leading-snug transition-colors hover:invert-block"
+                      className="flex w-full items-center gap-2 border-2 px-3.5 py-2.5 text-start text-[0.8rem] leading-snug transition-colors hover:invert-block"
                       style={{ borderColor: 'var(--edge-soft)' }}
                     >
+                      <ArrowUpRight size={13} strokeWidth={2.2} className="shrink-0 opacity-60" />
                       {suggestion}
                     </button>
                   ))}
@@ -182,8 +197,16 @@ export function Chatbot() {
             )}
 
             {turns.map((turn, index) => (
-              <div key={index} className="space-y-2">
-                <Bubble role={turn.role}>{turn.content}</Bubble>
+              <div key={index} className="space-y-2.5">
+                <Bubble role={turn.role} content={turn.content} />
+
+                {turn.role === 'assistant' && !!turn.cards?.length && (
+                  <div className="space-y-2">
+                    {turn.cards.map((card) => (
+                      <CardBox key={`${card.type}-${card.title}`} card={card} onNavigate={() => setOpen(false)} />
+                    ))}
+                  </div>
+                )}
 
                 {turn.notice && (
                   <p
@@ -192,25 +215,6 @@ export function Chatbot() {
                   >
                     {turn.notice}
                   </p>
-                )}
-
-                {turn.role === 'assistant' && !!turn.sources?.length && (
-                  <details className="group">
-                    <summary className="label-tight cursor-pointer list-none opacity-55 hover:opacity-100">
-                      {tr('chat.sources')} ({turn.sources.length})
-                    </summary>
-                    <ul className="mt-2 space-y-1.5">
-                      {turn.sources.map((source) => (
-                        <li
-                          key={source.title}
-                          className="label-tight border-s-2 ps-2.5 leading-relaxed"
-                          style={{ borderColor: 'var(--edge-soft)', color: 'var(--fg-faint)' }}
-                        >
-                          {source.title}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
                 )}
               </div>
             ))}
@@ -266,19 +270,77 @@ export function Chatbot() {
   )
 }
 
-function Bubble({ role, children }: { role: 'user' | 'assistant'; children: React.ReactNode }) {
+function Bubble({ role, content }: { role: 'user' | 'assistant'; content: string }) {
   const isUser = role === 'user'
   return (
     <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[88%] whitespace-pre-wrap border-2 px-3.5 py-2.5 text-[0.875rem] leading-relaxed',
-          isUser && 'invert-block',
+          'max-w-[90%] border-2 px-3.5 py-2.5 text-[0.875rem] leading-relaxed',
+          isUser && 'invert-block whitespace-pre-wrap',
         )}
         style={{ borderColor: isUser ? 'var(--edge)' : 'var(--edge-soft)' }}
       >
-        {children}
+        {isUser
+          ? content
+          : <div className="chat-md" dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />}
       </div>
     </div>
   )
+}
+
+/** Rich project / experience card rendered inline in the transcript. */
+function CardBox({ card, onNavigate }: { card: ChatCard; onNavigate: () => void }) {
+  const Icon = card.type === 'project' ? FolderKanban : Briefcase
+  const inner = (
+    <>
+      <div className="mb-1.5 flex items-center gap-2">
+        <Icon size={13} strokeWidth={2.2} className="shrink-0 opacity-70" />
+        <span className="label-tight" style={{ color: 'var(--fg-faint)' }}>
+          {card.type === 'project' ? 'Project' : 'Experience'}
+        </span>
+        {card.year && (
+          <span className="label-tight ms-auto" style={{ color: 'var(--fg-faint)' }}>{card.year}</span>
+        )}
+      </div>
+      <p className="text-[0.9rem] font-bold leading-snug">{card.title}</p>
+      {card.subtitle && (
+        <p className="serif-accent mt-0.5 text-[0.85rem] leading-snug" style={{ color: 'var(--fg-dim)' }}>
+          {card.subtitle}
+        </p>
+      )}
+      {!!card.tags?.length && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {card.tags.map((tag) => (
+            <span key={tag} className="label-tight border px-1.5 py-0.5"
+                  style={{ borderColor: 'var(--edge-soft)', color: 'var(--fg-faint)' }}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </>
+  )
+
+  const boxStyle = { borderColor: 'var(--edge-soft)', background: 'var(--glass-bg-strong)' }
+
+  if (card.type === 'project' && card.url) {
+    return (
+      <Link
+        to={card.url}
+        onClick={onNavigate}
+        className="group block border-2 p-3 transition-colors hover:border-current"
+        style={boxStyle}
+      >
+        {inner}
+        <div className="mt-2 flex items-center gap-2 border-t pt-2" style={{ borderColor: 'var(--edge-soft)' }}>
+          <span className="label-tight">Open case study</span>
+          <ArrowUpRight size={13} strokeWidth={2} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          {card.repo_url && <Github size={13} strokeWidth={2} className="ms-auto opacity-60" />}
+        </div>
+      </Link>
+    )
+  }
+
+  return <div className="border-2 p-3" style={boxStyle}>{inner}</div>
 }

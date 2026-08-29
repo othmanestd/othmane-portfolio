@@ -46,6 +46,7 @@ app.include_router(chat.router)
 app.include_router(contact.router)
 app.include_router(admin.router)
 app.include_router(admin.guarded)
+app.include_router(admin.guarded_db)
 
 
 @app.get("/api/health")

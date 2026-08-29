@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowDown, ArrowUpRight, Github, Linkedin } from 'lucide-react'
+import { ArrowDown, ArrowUpRight, BadgeCheck, Github, Linkedin, Trophy } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { useContent } from '@/hooks/useContent'
 import { Reveal } from '@/components/Reveal'
@@ -7,7 +7,8 @@ import { Marquee } from '@/components/Marquee'
 import { ProjectCard } from '@/components/ProjectCard'
 import { ScrambleText } from '@/components/ScrambleText'
 import { Button, ButtonLink, PageLoader, SectionHeader, StatusDot } from '@/components/ui'
-import { pad, t } from '@/lib/utils'
+import { cn, pad, t } from '@/lib/utils'
+import type { Award } from '@/lib/types'
 
 export default function Home() {
   const { tr, locale } = useI18n()
@@ -86,9 +87,10 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Portrait: hard frame, glass plate, duotone treatment */}
+            {/* Portrait: hard frame, glass plate, duotone treatment.
+                Sized down on phones so it never dwarfs the copy. */}
             <div className="md:col-span-5 md:justify-self-end">
-              <figure className="relative w-full max-w-[320px]">
+              <figure className="relative mx-auto w-full max-w-[220px] sm:mx-0 sm:max-w-[260px] md:max-w-[320px]">
                 <div
                   className="glass relative aspect-[4/5] overflow-hidden border-2"
                   style={{ borderColor: 'var(--edge)', boxShadow: 'var(--shadow-hard)' }}
@@ -98,6 +100,8 @@ export default function Home() {
                       src={profile.photo_url}
                       alt={profile.name}
                       loading="eager"
+                      width={640}
+                      height={800}
                       className="h-full w-full object-cover object-center transition-all duration-700 hover:scale-[1.03]"
                       style={{ filter: 'grayscale(1) contrast(1.12) brightness(0.97)' }}
                     />
@@ -287,6 +291,17 @@ export default function Home() {
         </ul>
       </section>
 
+      {/* ================= DISTINCTIONS (PODIUM) ================= */}
+      <section className="relative z-10 overflow-hidden">
+        <div className="mesh opacity-50" aria-hidden />
+        <div className="relative z-10 mx-auto max-w-[1400px] px-4 pb-24 md:px-8 md:pb-32">
+          <Reveal>
+            <SectionHeader index={4} title={tr('section.awards')} subtitle={tr('section.awards.sub')} />
+          </Reveal>
+          <Podium awards={awards} certifications={certifications} />
+        </div>
+      </section>
+
       {/* ================= CTA ================= */}
       <section className="relative z-10 mx-auto max-w-[1400px] px-4 pb-8 md:px-8">
         <Reveal>
@@ -296,7 +311,7 @@ export default function Home() {
           >
             <div className="mesh" aria-hidden />
             <div className="relative z-10">
-              <p className="label mb-6">[{pad(4)}] — {tr('section.contact')}</p>
+              <p className="label mb-6">[{pad(5)}] — {tr('section.contact')}</p>
               <h2 className="display mx-auto mb-7 max-w-3xl text-[clamp(2rem,7vw,5rem)]">
                 {tr('contact.title')}
               </h2>
@@ -316,6 +331,117 @@ export default function Home() {
           </div>
         </Reveal>
       </section>
+    </>
+  )
+}
+
+/* ---------------------------------------------------------------------------
+   Distinctions podium — the three headline awards on a 2·1·3 podium, with the
+   rest and the certifications listed beneath. Monochrome: 1st place is the
+   solid inverted block, silver/bronze are outlined and shorter.
+   --------------------------------------------------------------------------- */
+function Podium({ awards, certifications }: { awards: Award[]; certifications: Award[] }) {
+  const { tr } = useI18n()
+  const top = awards.slice(0, 3)
+  const rest = awards.slice(3)
+
+  // DOM order is [2nd, 1st, 3rd] so the desktop podium reads correctly; the
+  // `order` utilities put 1st on top when the blocks stack on mobile.
+  const arranged = [
+    { award: top[1], place: 2, deskH: 'md:h-44', mOrder: 'order-2', dOrder: 'md:order-1' },
+    { award: top[0], place: 1, deskH: 'md:h-56', mOrder: 'order-1', dOrder: 'md:order-2' },
+    { award: top[2], place: 3, deskH: 'md:h-36', mOrder: 'order-3', dOrder: 'md:order-3' },
+  ].filter((b) => b.award)
+
+  return (
+    <>
+      <div className="mb-10 flex flex-col items-stretch gap-4 md:flex-row md:items-end md:gap-5">
+        {arranged.map(({ award, place, deskH, mOrder, dOrder }) => {
+          const first = place === 1
+          return (
+            <Reveal
+              key={award.title}
+              delay={place * 80}
+              className={cn('flex-1', mOrder, dOrder)}
+            >
+              <div
+                className={cn(
+                  'relative flex h-full flex-col justify-between border-2 p-5 md:p-6',
+                  deskH,
+                  first ? 'invert-block' : 'glass',
+                )}
+                style={{ borderColor: 'var(--edge)', boxShadow: first ? 'var(--shadow-hard)' : 'var(--shadow-hard-sm)' }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <Trophy size={first ? 22 : 18} strokeWidth={1.8} className={first ? '' : 'opacity-60'} />
+                  <span className="display leading-none" style={{ fontSize: first ? '3.2rem' : '2.4rem' }}>
+                    {place}
+                  </span>
+                </div>
+                <div>
+                  <p className={cn('label-tight mb-2', first ? 'opacity-70' : '')}>
+                    {[award.rank, award.year].filter(Boolean).join(' · ')}
+                  </p>
+                  <p className={cn('font-bold leading-snug', first ? 'text-lg' : 'text-base')}>
+                    {award.title}
+                  </p>
+                  {award.issuer && (
+                    <p className={cn('label-tight mt-1.5', first ? 'opacity-70' : '')}
+                       style={first ? undefined : { color: 'var(--fg-faint)' }}>
+                      {award.issuer}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Reveal>
+          )
+        })}
+      </div>
+
+      {/* Podium base line */}
+      <div className="rule-strong mb-10 hidden md:block" />
+
+      <div className="grid gap-10 md:grid-cols-2">
+        {rest.length > 0 && (
+          <div>
+            <p className="label mb-4">{tr('section.awards')}</p>
+            <ul className="space-y-px" style={{ background: 'var(--edge-soft)' }}>
+              {rest.map((award, index) => (
+                <Reveal key={award.title} as="li" delay={index * 45}>
+                  <div className="flex items-start gap-3.5 py-4" style={{ background: 'var(--bg)' }}>
+                    <Trophy size={16} strokeWidth={1.9} className="mt-0.5 shrink-0 opacity-50" />
+                    <div className="min-w-0">
+                      <p className="font-bold leading-snug">{award.title}</p>
+                      <p className="label-tight mt-1" style={{ color: 'var(--fg-faint)' }}>
+                        {[award.rank, award.issuer, award.year].filter(Boolean).join(' · ')}
+                      </p>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {certifications.length > 0 && (
+          <div>
+            <p className="label mb-4">{tr('section.certifications')}</p>
+            <ul className="space-y-px" style={{ background: 'var(--edge-soft)' }}>
+              {certifications.map((cert, index) => (
+                <Reveal key={cert.title} as="li" delay={index * 55}>
+                  <div className="flex items-start gap-3.5 py-4" style={{ background: 'var(--bg)' }}>
+                    <BadgeCheck size={16} strokeWidth={1.9} className="mt-0.5 shrink-0 opacity-50" />
+                    <div className="min-w-0">
+                      <p className="font-bold leading-snug">{cert.title}</p>
+                      <p className="label-tight mt-1" style={{ color: 'var(--fg-faint)' }}>{cert.issuer}</p>
+                    </div>
+                  </div>
+                </Reveal>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </>
   )
 }
