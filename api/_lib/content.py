@@ -224,13 +224,166 @@ EXPERIENCES = [
 
 PROJECTS = [
     {
+            "slug": "fabric-analytics-platform",
+            "title": "Fabric Analytics Platform",
+            "year": "2026",
+            "category": "analytics",
+            "featured": True,
+            "published": True,
+            "order": 1,
+            "repo_url": "",
+            "live_url": "",
+            "stack": [
+                    "Microsoft Fabric",
+                    "Fabric Lakehouse",
+                    "Data Pipelines",
+                    "Dataflow Gen2",
+                    "PySpark",
+                    "Power BI",
+                    "Direct Lake"
+            ],
+            "tagline": {
+                    "fr": "Plateforme analytique end-to-end sur Microsoft Fabric",
+                    "en": "End-to-end analytics platform on Microsoft Fabric",
+                    "ar": "منصة تحليلية متكاملة على Microsoft Fabric"
+            },
+            "summary": {
+                    "fr": "Ingestion et industrialisation d'un jeu de données volumineux dans un Lakehouse Fabric : médaillon Bronze/Silver/Gold via notebooks PySpark et Data Pipelines, restitué par un modèle sémantique Power BI en Direct Lake.",
+                    "en": "Ingesting and industrialising a large dataset into a Fabric Lakehouse: a Bronze/Silver/Gold medallion built with PySpark notebooks and Data Pipelines, served through a Power BI semantic model in Direct Lake.",
+                    "ar": "استيعاب وتصنيع مجموعة بيانات كبيرة داخل Lakehouse على Microsoft Fabric: معمارية ميدالية برونزية/فضية/ذهبية عبر دفاتر PySpark وخطوط البيانات، مع نموذج دلالي في Power BI بوضع Direct Lake."
+            },
+            "role": {
+                    "fr": "Conception · Notebooks PySpark · Modélisation Power BI",
+                    "en": "Architecture · PySpark notebooks · Power BI modelling",
+                    "ar": "التصميم · دفاتر PySpark · نمذجة Power BI"
+            },
+            "metrics": [
+                    {
+                            "label": "Status",
+                            "value": "Ongoing"
+                    },
+                    {
+                            "label": "Architecture",
+                            "value": "Bronze/Silver/Gold"
+                    },
+                    {
+                            "label": "Serving",
+                            "value": "Direct Lake"
+                    }
+            ],
+            "highlights": [
+                    {
+                            "fr": "Médaillon Bronze/Silver/Gold construit via notebooks PySpark et Data Pipelines Fabric",
+                            "en": "Bronze/Silver/Gold medallion built with PySpark notebooks and Fabric Data Pipelines",
+                            "ar": "معمارية ميدالية عبر دفاتر PySpark وخطوط بيانات Fabric"
+                    },
+                    {
+                            "fr": "Modèle sémantique et rapport Power BI en Direct Lake",
+                            "en": "Semantic model and Power BI report in Direct Lake",
+                            "ar": "نموذج دلالي وتقرير Power BI بوضع Direct Lake"
+                    },
+                    {
+                            "fr": "Comparaison des modes Direct Lake vs Import sur les temps de réponse",
+                            "en": "Direct Lake vs Import benchmarked on query response times",
+                            "ar": "مقارنة بين وضعي Direct Lake وImport من حيث زمن الاستجابة"
+                    },
+                    {
+                            "fr": "Ingestion et industrialisation d'un jeu de données volumineux",
+                            "en": "Ingestion and industrialisation of a large dataset",
+                            "ar": "استيعاب وتصنيع مجموعة بيانات كبيرة"
+                    }
+            ],
+            "body": {
+                    "fr": "## Le contexte\nMicrosoft Fabric réunit lac de données, ingénierie et BI dans une seule plateforme SaaS. L'objectif : industrialiser une plateforme analytique complète dessus, de l'ingestion brute jusqu'au rapport Power BI, et mesurer ce que **Direct Lake** apporte vraiment.\n\n## L'architecture\nUn **Lakehouse Fabric** organisé en médaillon **Bronze/Silver/Gold**. Le Bronze reçoit la donnée brute via **Data Pipelines** et **Dataflow Gen2** ; les couches Silver et Gold sont construites avec des **notebooks PySpark** (nettoyage, conformité, agrégats métier).\n\n## La restitution\nUn **modèle sémantique** est exposé à Power BI en **Direct Lake** — les rapports lisent directement les tables Delta du Lakehouse sans import ni copie, ce qui réduit la latence et supprime les rafraîchissements.\n\n## Ce que je mesure\nUne comparaison **Direct Lake vs Import** sur les temps de réponse des requêtes, pour objectiver le gain plutôt que de l'affirmer.\n\n> Projet en cours, mené en parallèle de la préparation de la certification **Microsoft Fabric Data Engineer Associate (DP-700)**.",
+                    "en": "## Context\nMicrosoft Fabric bundles the data lake, engineering and BI into one SaaS platform. The goal: industrialise a full analytics platform on it — from raw ingestion to the Power BI report — and measure what **Direct Lake** actually buys you.\n\n## The architecture\nA **Fabric Lakehouse** laid out as a **Bronze/Silver/Gold** medallion. Bronze takes raw data through **Data Pipelines** and **Dataflow Gen2**; the Silver and Gold layers are built with **PySpark notebooks** (cleansing, conformance, business aggregates).\n\n## Serving\nA **semantic model** is exposed to Power BI in **Direct Lake** — reports read the Lakehouse's Delta tables directly, with no import or copy, which cuts latency and removes dataset refreshes.\n\n## What I measure\nA **Direct Lake vs Import** comparison on query response times, to make the gain concrete rather than assumed.\n\n> Ongoing, alongside preparing the **Microsoft Fabric Data Engineer Associate (DP-700)** certification.",
+                    "ar": "## السياق\nتجمع Microsoft Fabric بحيرة البيانات والهندسة وذكاء الأعمال في منصة واحدة. الهدف: بناء منصة تحليلية كاملة عليها، من الاستيعاب الخام حتى تقرير Power BI، وقياس ما يقدمه وضع **Direct Lake** فعليًا.\n\n## المعمارية\n**Lakehouse على Fabric** بمعمارية ميدالية **برونزية/فضية/ذهبية**. تستقبل الطبقة البرونزية البيانات الخام عبر **Data Pipelines** و**Dataflow Gen2**، وتُبنى الطبقتان الفضية والذهبية عبر **دفاتر PySpark**.\n\n## العرض\nيُعرض **النموذج الدلالي** على Power BI بوضع **Direct Lake**، حيث تقرأ التقارير جداول Delta مباشرة دون نسخ، ما يقلل زمن الاستجابة.\n\n## ما أقيسه\nمقارنة **Direct Lake مقابل Import** على أزمنة الاستجابة.\n\n> مشروع قيد الإنجاز بالتوازي مع التحضير لشهادة **Microsoft Fabric Data Engineer Associate (DP-700)**."
+            }
+    },
+    {
+            "slug": "streamcdc",
+            "title": "StreamCDC",
+            "year": "2026",
+            "category": "streaming",
+            "featured": True,
+            "published": True,
+            "order": 2,
+            "repo_url": "",
+            "live_url": "",
+            "stack": [
+                    "Kafka",
+                    "Kafka Connect",
+                    "Debezium",
+                    "Apache Iceberg",
+                    "PostgreSQL",
+                    "Trino",
+                    "DuckDB",
+                    "Docker"
+            ],
+            "tagline": {
+                    "fr": "Réplication temps réel par Change Data Capture",
+                    "en": "Real-time replication through Change Data Capture",
+                    "ar": "نسخ فوري عبر التقاط تغييرات البيانات (CDC)"
+            },
+            "summary": {
+                    "fr": "Capture des changements d'une base PostgreSQL avec Debezium, diffusion via Kafka Connect vers Kafka, et matérialisation dans une table Apache Iceberg requêtable par Trino/DuckDB.",
+                    "en": "Capturing changes from a PostgreSQL database with Debezium, streaming them through Kafka Connect into Kafka, and materialising them into an Apache Iceberg table queryable from Trino/DuckDB.",
+                    "ar": "التقاط تغييرات قاعدة PostgreSQL باستخدام Debezium وبثها عبر Kafka Connect إلى Kafka، ثم تجسيدها في جدول Apache Iceberg قابل للاستعلام عبر Trino/DuckDB."
+            },
+            "role": {
+                    "fr": "Conception du pipeline CDC · Streaming · Lakehouse Iceberg",
+                    "en": "CDC pipeline design · Streaming · Iceberg lakehouse",
+                    "ar": "تصميم خط CDC · البث · بحيرة Iceberg"
+            },
+            "metrics": [
+                    {
+                            "label": "Status",
+                            "value": "Ongoing"
+                    },
+                    {
+                            "label": "Pattern",
+                            "value": "CDC"
+                    },
+                    {
+                            "label": "Table format",
+                            "value": "Iceberg"
+                    }
+            ],
+            "highlights": [
+                    {
+                            "fr": "Capture des changements PostgreSQL avec Debezium",
+                            "en": "Change capture from PostgreSQL with Debezium",
+                            "ar": "التقاط تغييرات PostgreSQL باستخدام Debezium"
+                    },
+                    {
+                            "fr": "Diffusion via Kafka Connect vers Kafka",
+                            "en": "Streamed through Kafka Connect into Kafka",
+                            "ar": "البث عبر Kafka Connect إلى Kafka"
+                    },
+                    {
+                            "fr": "Matérialisation dans une table Apache Iceberg (Trino / DuckDB)",
+                            "en": "Materialised into an Apache Iceberg table (Trino / DuckDB)",
+                            "ar": "التجسيد في جدول Apache Iceberg (Trino / DuckDB)"
+                    },
+                    {
+                            "fr": "Gestion de l'évolution de schéma et mesure de la latence de réplication",
+                            "en": "Schema evolution handled, replication latency measured",
+                            "ar": "إدارة تطور المخطط وقياس زمن النسخ"
+                    }
+            ],
+            "body": {
+                    "fr": "## Le problème\nRépliquer une base en temps réel sans marteler la source de requêtes : c'est exactement ce que résout le **Change Data Capture**. Au lieu d'interroger la base, on lit son journal de transactions.\n\n## Le pipeline\n**Debezium** lit le WAL de **PostgreSQL** et publie chaque insertion/mise à jour/suppression ; **Kafka Connect** achemine ces événements vers **Kafka**. Chaque changement devient un message, dans l'ordre, sans polling.\n\n## La matérialisation\nLes flux sont matérialisés dans une table **Apache Iceberg** — un format de table ouvert qui gère l'**évolution de schéma** et le voyage dans le temps — puis interrogeables par **Trino** et **DuckDB**.\n\n## Ce qui compte\nLa **gestion de l'évolution de schéma** (une colonne ajoutée en source ne casse pas le flux) et la **mesure de la latence de réplication** de bout en bout, pour savoir à quel point le « temps réel » l'est vraiment.\n\n> Projet en cours, entièrement dockerisé pour être reproductible.",
+                    "en": "## The problem\nReplicating a database in real time without hammering the source with queries — that's exactly what **Change Data Capture** solves. Instead of polling the database, you read its transaction log.\n\n## The pipeline\n**Debezium** reads **PostgreSQL**'s WAL and publishes every insert/update/delete; **Kafka Connect** routes those events into **Kafka**. Each change becomes an ordered message, no polling.\n\n## Materialisation\nThe streams are materialised into an **Apache Iceberg** table — an open table format with **schema evolution** and time travel — then queried from **Trino** and **DuckDB**.\n\n## What matters\n**Schema evolution** (a column added at the source doesn't break the stream) and **measuring end-to-end replication latency**, so \"real time\" is a number, not a claim.\n\n> Ongoing, fully dockerised for reproducibility.",
+                    "ar": "## المشكلة\nنسخ قاعدة بيانات آنيًا دون إرهاق المصدر بالاستعلامات هو ما يحله **التقاط تغييرات البيانات (CDC)**: بدل استجواب القاعدة، نقرأ سجل معاملاتها.\n\n## الخط\nيقرأ **Debezium** سجل WAL الخاص بـ **PostgreSQL** وينشر كل إضافة/تحديث/حذف، ويوجه **Kafka Connect** هذه الأحداث إلى **Kafka**.\n\n## التجسيد\nتُجسَّد التدفقات في جدول **Apache Iceberg** — صيغة جداول مفتوحة تدعم **تطور المخطط** والسفر عبر الزمن — ثم تُستعلَم عبر **Trino** و**DuckDB**.\n\n## ما يهم\n**إدارة تطور المخطط** و**قياس زمن النسخ** من الطرف إلى الطرف.\n\n> مشروع قيد الإنجاز، محزوم بالكامل عبر Docker."
+            }
+    },
+    {
         "slug": "dataflow360",
         "title": "DataFlow360",
         "year": "2026",
         "category": "streaming",
         "featured": True,
         "published": True,
-        "order": 1,
+        "order": 3,
         "repo_url": f"{GITHUB_URL}/DataFlow360",
         "live_url": "",
         "stack": ["Azure Event Hubs", "Databricks", "Spark Structured Streaming",
@@ -338,7 +491,7 @@ PROJECTS = [
         "category": "data-quality",
         "featured": True,
         "published": True,
-        "order": 2,
+        "order": 4,
         "repo_url": f"{GITHUB_URL}/Lakehouse-DQ-Pipeline",
         "live_url": "",
         "stack": ["PySpark", "Delta Lake", "Databricks", "Python", "pytest"],
@@ -442,7 +595,7 @@ PROJECTS = [
         "category": "orchestration",
         "featured": True,
         "published": True,
-        "order": 3,
+        "order": 5,
         "repo_url": f"{GITHUB_URL}/Airflow-Data-Pipeline",
         "live_url": "",
         "stack": ["Apache Airflow", "Docker", "PostgreSQL 15", "PySpark", "Python"],
@@ -543,7 +696,7 @@ PROJECTS = [
         "category": "etl",
         "featured": False,
         "published": True,
-        "order": 4,
+        "order": 6,
         "repo_url": f"{GITHUB_URL}/Azure-ETL-Factory",
         "live_url": "",
         "stack": ["Azure Data Factory", "Databricks", "Delta Lake", "Synapse",
@@ -640,7 +793,7 @@ PROJECTS = [
         "category": "performance",
         "featured": False,
         "published": True,
-        "order": 5,
+        "order": 7,
         "repo_url": f"{GITHUB_URL}/Spark-SQL-Performance-Lab",
         "live_url": "",
         "stack": ["Apache Spark", "PySpark", "SQL", "Delta Lake", "Databricks"],
@@ -744,7 +897,7 @@ PROJECTS = [
         "category": "process-mining",
         "featured": True,
         "published": True,
-        "order": 6,
+        "order": 8,
         "repo_url": "https://github.com/othmanestd/lakehouse-churn",
         "live_url": "",
         "stack": ["Celonis", "Apache Spark 3.5", "SQL", "Power BI", "Jira"],
@@ -848,7 +1001,7 @@ PROJECTS = [
         "category": "etl",
         "featured": False,
         "published": True,
-        "order": 7,
+        "order": 9,
         "repo_url": f"{GITHUB_URL}/retellai-call-stats",
         "live_url": "",
         "stack": ["Python", "MySQL", "REST API", "Retell.ai", "GenAI", "SMTP", "JavaScript"],
@@ -940,7 +1093,7 @@ PROJECTS = [
         "category": "platform",
         "featured": False,
         "published": True,
-        "order": 8,
+        "order": 10,
         "repo_url": "",
         "live_url": "",
         "stack": ["Kubernetes (RKE)", "Proxmox VE", "GitLab CI/CD", "Jenkins",
