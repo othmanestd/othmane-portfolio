@@ -307,7 +307,7 @@ PROJECTS = [
             "featured": True,
             "published": True,
             "order": 2,
-            "repo_url": "",
+            "repo_url": "https://github.com/othmanestd/streamcdc",
             "live_url": "",
             "stack": [
                     "Kafka",
