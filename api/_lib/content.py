@@ -121,11 +121,63 @@ EXPERIENCES = [
         ],
     },
     {
+            "company": "Generovo",
+            "role": {
+                    "fr": "Data Engineer · Freelance",
+                    "en": "Data Engineer · Freelance",
+                    "ar": "مهندس بيانات · عمل حر"
+            },
+            "location": "Maroc / France",
+            "period": {
+                    "fr": "Mars 2025 – Janvier 2026",
+                    "en": "March 2025 – January 2026",
+                    "ar": "مارس 2025 – يناير 2026"
+            },
+            "start": "2025-03",
+            "end": "2026-01",
+            "kind": "work",
+            "order": 2,
+            "stack": [
+                    "Azure Databricks",
+                    "PySpark",
+                    "Delta Lake",
+                    "SQL",
+                    "Azure"
+            ],
+            "bullets": [
+                    {
+                            "fr": "Startup studio à portefeuille multi-produits (Maroc / France) — mission freelance sous NDA.",
+                            "en": "Multi-product startup studio (Morocco / France) — freelance engagement under NDA.",
+                            "ar": "استوديو شركات ناشئة متعدد المنتجات (المغرب / فرنسا) — مهمة مستقلة تحت اتفاقية عدم إفشاء."
+                    },
+                    {
+                            "fr": "Conçu et développé les pipelines d'ingestion et de transformation de données sur Azure Databricks.",
+                            "en": "Designed and built the data ingestion and transformation pipelines on Azure Databricks.",
+                            "ar": "تصميم وتطوير خطوط استيعاب وتحويل البيانات على Azure Databricks."
+                    },
+                    {
+                            "fr": "Structuré et modélisé les données pour les besoins analytiques des produits du studio.",
+                            "en": "Structured and modelled the data for the analytics needs of the studio's products.",
+                            "ar": "هيكلة ونمذجة البيانات لتلبية الاحتياجات التحليلية لمنتجات الاستوديو."
+                    },
+                    {
+                            "fr": "Fiabilisé les jeux de données (nettoyage, normalisation) alimentant les traitements analytiques et les cas d'usage IA.",
+                            "en": "Made the datasets reliable (cleansing, normalisation) feeding the analytics workloads and AI use cases.",
+                            "ar": "تحسين موثوقية مجموعات البيانات (تنظيف وتوحيد) التي تغذي المعالجات التحليلية وحالات استخدام الذكاء الاصطناعي."
+                    },
+                    {
+                            "fr": "Industrialisé les traitements de données (notebooks Spark, jobs planifiés).",
+                            "en": "Industrialised the data processing (Spark notebooks, scheduled jobs).",
+                            "ar": "تصنيع معالجة البيانات (دفاتر Spark، مهام مجدولة)."
+                    }
+            ]
+    },
+    {
         "company": "ONDA",
         "role": {"fr": "AI Engineer", "en": "AI Engineer", "ar": "مهندس ذكاء اصطناعي"},
         "location": "Casablanca, Maroc",
         "period": {"fr": "Juillet – Septembre 2025", "en": "July – September 2025", "ar": "يوليوز – شتنبر 2025"},
-        "start": "2025-07", "end": "2025-09", "kind": "work", "order": 2,
+        "start": "2025-07", "end": "2025-09", "kind": "work", "order": 3,
         "stack": ["Python", "MySQL", "REST API", "Retell.ai", "GenAI", "SMTP", "JavaScript"],
         "bullets": [
             {
@@ -155,7 +207,7 @@ EXPERIENCES = [
         "role": {"fr": "AI Engineer", "en": "AI Engineer", "ar": "مهندس ذكاء اصطناعي"},
         "location": "Casablanca, Maroc",
         "period": {"fr": "Juillet – Août 2024", "en": "July – August 2024", "ar": "يوليوز – غشت 2024"},
-        "start": "2024-07", "end": "2024-08", "kind": "work", "order": 3,
+        "start": "2024-07", "end": "2024-08", "kind": "work", "order": 4,
         "stack": ["OpenAI API", "TypeScript", "React", "JavaScript"],
         "bullets": [
             {
@@ -180,7 +232,7 @@ EXPERIENCES = [
         "role": {"fr": "Software Engineer", "en": "Software Engineer", "ar": "مهندس برمجيات"},
         "location": "Casablanca, Maroc",
         "period": {"fr": "Juillet – Août 2023", "en": "July – August 2023", "ar": "يوليوز – غشت 2023"},
-        "start": "2023-07", "end": "2023-08", "kind": "work", "order": 4,
+        "start": "2023-07", "end": "2023-08", "kind": "work", "order": 5,
         "stack": ["HTML", "CSS", "JavaScript", "SQL", "MySQL"],
         "bullets": [
             {
